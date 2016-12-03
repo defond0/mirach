@@ -32,6 +32,7 @@ func getConfig() {
 func main() {
 	flag.Parse()
 	getConfig()
+	client := Client()
 	c := cron.New()
 	c.Start()
 	s := make(chan os.Signal, 1)
@@ -43,7 +44,7 @@ func main() {
 	}
 	for k, v := range plugins {
 		glog.Infof("Adding to plugin: %s", k)
-		c.AddFunc(v.Schedule, RunPlugin(v))
+		c.AddFunc(v.Schedule, RunPlugin(v, client))
 	}
 	for _ = range s {
 		// sig is a ^c, handle it
