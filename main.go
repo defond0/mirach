@@ -33,6 +33,7 @@ func getConfig() {
 
 func main() {
 	flag.Parse()
+	flag.Lookup("logtostderr").Value.Set("true")
 	getConfig()
 	plugins := make(map[string]Plugin)
 	err := viper.UnmarshalKey("plugins", &plugins)
