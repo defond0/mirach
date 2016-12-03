@@ -35,6 +35,11 @@ func main() {
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
 	getConfig()
+	AssetID := viper.GetString("asset_id")
+	if AssetID == "" {
+		AssetID = readAssetID()
+	}
+	fmt.Println(AssetID)
 	plugins := make(map[string]Plugin)
 	err := viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
