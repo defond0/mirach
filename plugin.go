@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
 )
 
@@ -20,7 +21,7 @@ type result struct {
 	Data string `json:"data"`
 }
 
-func RunPlugin(p Plugin) func() {
+func RunPlugin(p Plugin, c MQTT.Client) func() {
 	return func() {
 		glog.Infof("Running plugin: %s", p.Cmd)
 		cmd := exec.Command(p.Cmd)
@@ -36,6 +37,7 @@ func RunPlugin(p Plugin) func() {
 			log.Fatal(err)
 		}
 		err = cmd.Wait()
+		Publish(res, c)
 		fmt.Printf("type: %s, data: %s\n", res.Type, res.Data)
 	}
 }
