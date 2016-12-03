@@ -34,15 +34,15 @@ func getConfig() {
 func main() {
 	flag.Parse()
 	getConfig()
-	c := cron.New()
-	c.Start()
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt)
 	plugins := make(map[string]Plugin)
 	err := viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c := cron.New()
+	c.Start()
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt)
 	for k, v := range plugins {
 		glog.Infof("Adding to plugin: %s", k)
 		c.AddFunc(v.Schedule, RunPlugin(v))
