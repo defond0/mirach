@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
@@ -19,11 +18,8 @@ type Plugin struct {
 }
 
 type result struct {
-	Type    string `json:"type"`
-	Data    string `json:"data"`
-	Time    string `json:"time"`
-	AssetID string `json:"asset_id"`
-	CustID  string `json:"customer_id"`
+	Type string `json:"type"`
+	Data string `json:"data"`
 }
 
 func RunPlugin(p Plugin, c MQTT.Client) func() {
@@ -44,9 +40,6 @@ func RunPlugin(p Plugin, c MQTT.Client) func() {
 		err = cmd.Wait()
 		custID := viper.GetString("customer_id")
 		assetID := viper.GetString("asset_id")
-		res.AssetID = assetID
-		res.CustID = custID
-		res.Time = fmt.Sprint(time.Now().Unix())
 		mes, err := json.Marshal(res)
 		if err != nil {
 			log.Fatal(err)
