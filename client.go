@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/spf13/viper"
 )
 
 var handler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
@@ -16,22 +16,23 @@ var handler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 }
 
 func Client() (c MQTT.Client) {
-	cert, err := ioutil.ReadFile("./6525356d25-certificate.pem.crt")
+	asset_keys := viper.GetStringMapString("asset_keys")
+	ca, err := ioutil.ReadFile(asset_keys["ca"])
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
-	key, err := ioutil.ReadFile("./6525356d25-private.pem.key")
+	key, err := ioutil.ReadFile(asset_keys["private_key"])
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
-	pair, err := tls.X509KeyPair(cert, key)
+	pair, err := tls.X509KeyPair(ca, key)
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
-	ca, err := ioutil.ReadFile("./ca.pem")
-	if err != nil {
-		panic(err)
-	}
+
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(ca)
 	conf := &tls.Config{
@@ -44,25 +45,28 @@ func Client() (c MQTT.Client) {
 	//off trace output and set the default message handler
 	opts := MQTT.NewClientOptions().AddBroker("***REMOVED***")
 	opts.SetTLSConfig(conf)
-	opts.SetClientID("jeffmirach")
+	opts.SetClientID("mirach")
 	opts.SetDefaultPublishHandler(handler)
 	//create and start a client using the above ClientOptions
 	c = MQTT.NewClient(opts)
 	token := c.Connect()
 	if token.Wait() && token.Error() != nil {
+		fmt.Println(err)
 		panic(token.Error())
 	}
 	//subscribe to the topic mirach/data and request messages to be delivered
 	//at a maximum qos of zero, wait for the receipt to confirm the subscription
-	if token := c.Subscribe("mirach/data", 0, nil); token.Wait() && token.Error() != nil {
+	custID := viper.GetString("customer_id")
+	assetID := viper.GetString("asset_id")
+	path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
+	if token := c.Subscribe(path, 0, nil); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
-		os.Exit(1)
+		panic(token.Error())
 	}
 	return c
 }
 
-func Publish(mes result, c MQTT.Client) {
-
-	token := c.Publish("mirach/data", 0, false, mes)
+func Publish(mes string, path string, c MQTT.Client) {
+	token := c.Publish(path, 0, false, mes)
 	token.Wait()
 }
