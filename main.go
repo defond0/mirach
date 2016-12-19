@@ -47,6 +47,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	client := Client()
 	plugins := make(map[string]Plugin)
 	err = viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
@@ -58,7 +59,7 @@ func main() {
 	signal.Notify(s, os.Interrupt)
 	for k, v := range plugins {
 		glog.Infof("Adding to plugin: %s", k)
-		c.AddFunc(v.Schedule, RunPlugin(v))
+		c.AddFunc(v.Schedule, RunPlugin(v, client))
 	}
 	for _ = range s {
 		// sig is a ^c, handle it

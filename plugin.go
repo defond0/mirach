@@ -6,7 +6,9 @@ import (
 	"log"
 	"os/exec"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/golang/glog"
+	"github.com/spf13/viper"
 )
 
 type Plugin struct {
@@ -20,7 +22,7 @@ type result struct {
 	Data string `json:"data"`
 }
 
-func RunPlugin(p Plugin) func() {
+func RunPlugin(p Plugin, c MQTT.Client) func() {
 	return func() {
 		glog.Infof("Running plugin: %s", p.Cmd)
 		cmd := exec.Command(p.Cmd)
@@ -36,6 +38,13 @@ func RunPlugin(p Plugin) func() {
 			log.Fatal(err)
 		}
 		err = cmd.Wait()
-		fmt.Printf("type: %s, data: %s\n", res.Type, res.Data)
+		custID := viper.GetString("customer_id")
+		assetID := viper.GetString("asset_id")
+		mes, err := json.Marshal(res)
+		if err != nil {
+			log.Fatal(err)
+		}
+		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
+		Publish(string(mes), path, c)
 	}
 }
