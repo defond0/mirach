@@ -26,22 +26,37 @@ func getConfig() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+	viper.SetEnvPrefix("mirach")
+	viper.AutomaticEnv()
 	viper.WatchConfig()
 }
 
 func main() {
 	flag.Parse()
+	err := flag.Lookup("logtostderr").Value.Set("true")
+	if err != nil {
+		glog.Infof("unable to log to stderr")
+	}
 	getConfig()
+	AssetID := viper.GetString("asset_id")
+	if AssetID == "" {
+		AssetID = readAssetID()
+	}
+	viper.Set("asset_id", AssetID)
+	err = viper.WriteConfig()
+	if err != nil {
+		panic(err)
+	}
 	client := Client()
+	plugins := make(map[string]Plugin)
+	err = viper.UnmarshalKey("plugins", &plugins)
+	if err != nil {
+		log.Fatal(err)
+	}
 	c := cron.New()
 	c.Start()
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
-	plugins := make(map[string]Plugin)
-	err := viper.UnmarshalKey("plugins", &plugins)
-	if err != nil {
-		log.Fatal(err)
-	}
 	for k, v := range plugins {
 		glog.Infof("Adding to plugin: %s", k)
 		c.AddFunc(v.Schedule, RunPlugin(v, client))
