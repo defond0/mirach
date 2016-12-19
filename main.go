@@ -42,9 +42,13 @@ func main() {
 	if AssetID == "" {
 		AssetID = readAssetID()
 	}
-	fmt.Println(AssetID)
+	viper.Set("asset_id", AssetID)
+	err = viper.WriteConfig()
+	if err != nil {
+		panic(err)
+	}
 	plugins := make(map[string]Plugin)
-	err := viper.UnmarshalKey("plugins", &plugins)
+	err = viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
 		log.Fatal(err)
 	}
