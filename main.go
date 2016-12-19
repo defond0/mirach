@@ -33,7 +33,10 @@ func getConfig() {
 
 func main() {
 	flag.Parse()
-	flag.Lookup("logtostderr").Value.Set("true")
+	err := flag.Lookup("logtostderr").Value.Set("true")
+	if err != nil {
+		glog.Infof("unable to log to stderr")
+	}
 	getConfig()
 	AssetID := viper.GetString("asset_id")
 	if AssetID == "" {
