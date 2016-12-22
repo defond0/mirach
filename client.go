@@ -3,17 +3,15 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 
-	MQTT "github.com/eclipse/paho.mqtt.golang"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 // NewClient creates and connects to a new MQTT client.
-func NewClient(ca []byte, key []byte, id string) (c MQTT.Client) {
+func NewClient(ca []byte, key []byte, id string) (mqtt.Client, error) {
 	pair, err := tls.X509KeyPair(ca, key)
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		return nil, err
 	}
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM(ca)
@@ -23,14 +21,13 @@ func NewClient(ca []byte, key []byte, id string) (c MQTT.Client) {
 		InsecureSkipVerify: true,
 	}
 	conf.BuildNameToCertificate()
-	opts := MQTT.NewClientOptions().AddBroker("***REMOVED***")
+	opts := mqtt.NewClientOptions().AddBroker("***REMOVED***")
 	opts.SetTLSConfig(conf)
 	opts.SetClientID(id)
-	c = MQTT.NewClient(opts)
+	c := mqtt.NewClient(opts)
 	token := c.Connect()
 	if token.Wait() && token.Error() != nil {
-		fmt.Println(err)
-		panic(token.Error())
+		return nil, token.Error()
 	}
-	return c
+	return c, nil
 }
