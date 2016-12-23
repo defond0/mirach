@@ -41,6 +41,8 @@ type Customer struct {
 type CustResponse struct {
 	ID      string `json:"customer_id"`
 	PrivKey string `json:"private_key"`
+	PubKey  string `json:"public_key"`
+	Cert    string `json:"certificate"`
 	CA      string `json:"ca"`
 }
 
