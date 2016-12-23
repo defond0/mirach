@@ -2,7 +2,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +12,7 @@ import (
 	// "gopkg.in/robfig/cron.v2"
 
 	"github.com/golang/glog"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -21,8 +21,13 @@ import (
 var sysConfDir string
 var userConfDir string
 var configDirs []string
-
 var timeout = make(chan bool, 1)
+
+var opts struct {
+	// Slice of bool will append 'true' each time the option
+	// is encountered (can be set multiple times, like -vvv)
+	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
+}
 
 func getConfig() string {
 	viper.SetConfigName("config")
@@ -41,10 +46,17 @@ func getConfig() string {
 }
 
 func main() {
-	flag.Parse()
-	err := flag.Lookup("logtostderr").Value.Set("true")
+	// flag.Parse()
+	_, err := flags.Parse(&opts)
 	if err != nil {
-		glog.Infof("unable to log to stderr")
+		panic(err)
+	}
+	v := len(opts.Verbose)
+	switch {
+	case v == 1:
+		jww.SetStdoutThreshold(jww.LevelInfo)
+	case v > 1:
+		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
 	if runtime.GOOS == "windows" {
 		userConfDir = "%APPDATA%\\mirach"
