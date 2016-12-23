@@ -22,6 +22,7 @@ type result struct {
 	Data string `json:"data"`
 }
 
+// RunPlugin run a plugin and publishes its results.
 func RunPlugin(p Plugin, c MQTT.Client) func() {
 	return func() {
 		glog.Infof("Running plugin: %s", p.Cmd)
@@ -45,6 +46,7 @@ func RunPlugin(p Plugin, c MQTT.Client) func() {
 			log.Fatal(err)
 		}
 		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
-		Publish(string(mes), path, c)
+		token := c.Publish(path, 0, false, string(mes))
+		token.Wait()
 	}
 }
