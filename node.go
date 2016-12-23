@@ -19,6 +19,8 @@ type MirachNode struct {
 	id          string
 	privKeyPath string
 	privKey     []byte
+	certPath    string
+	cert        []byte
 	client      mqtt.Client
 	resHandler  mqtt.MessageHandler
 }
@@ -53,7 +55,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer/keys/private_key_path"); loc != "" {
 		c.privKeyPath = loc
 	} else {
-		c.privKeyPath, err = findInDirs("private_key.pem", configDirs)
+		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private_key.pem"), configDirs)
 		if err != nil {
 			return errors.New("customer private key not found")
 		}
@@ -62,18 +64,30 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return err
 	}
+	if loc := viper.GetString("customer/keys/cert_path"); loc != "" {
+		c.certPath = loc
+	} else {
+		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "cert.pem"), configDirs)
+		if err != nil {
+			return errors.New("customer cert not found")
+		}
+	}
+	c.cert, err = ioutil.ReadFile(c.certPath)
+	if err != nil {
+		return err
+	}
 	ca, err := getCA()
 	if err != nil {
 		return err
 	}
-	c.client, err = NewClient(c.privKey, ca, "mirach-customer-client")
+	c.client, err = NewClient(ca, c.privKey, c.cert, "mirach-customer-client")
 	if err != nil {
 		return errors.New("customer client connection failed")
 	}
 	c.res = make(chan CustResponse, 1)
 	c.resHandler = func(client mqtt.Client, msg mqtt.Message) {
 		res := CustResponse{}
-		err = json.Unmarshal([]byte(msg.Payload()), &res)
+		err = json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
@@ -93,7 +107,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset/keys/private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs("private_key.pem", configDirs)
+		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private_key.pem"), configDirs)
 		if err != nil {
 			return errors.New("asset private key not found")
 		}
@@ -102,11 +116,23 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
+	if loc := viper.GetString("asset/keys/cert_path"); loc != "" {
+		a.certPath = loc
+	} else {
+		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "cert.pem"), configDirs)
+		if err != nil {
+			return errors.New("asset cert not found")
+		}
+	}
+	a.cert, err = ioutil.ReadFile(a.certPath)
+	if err != nil {
+		return err
+	}
 	ca, err := getCA()
 	if err != nil {
 		return err
 	}
-	a.client, err = NewClient(a.privKey, ca, a.id)
+	a.client, err = NewClient(ca, a.privKey, a.cert, a.id)
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}

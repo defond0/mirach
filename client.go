@@ -8,8 +8,8 @@ import (
 )
 
 // NewClient creates and connects to a new MQTT client.
-func NewClient(ca []byte, key []byte, id string) (mqtt.Client, error) {
-	pair, err := tls.X509KeyPair(ca, key)
+func NewClient(ca, privKey, cert []byte, id string) (mqtt.Client, error) {
+	pair, err := tls.X509KeyPair(cert, privKey)
 	if err != nil {
 		return nil, err
 	}
