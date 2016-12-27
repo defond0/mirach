@@ -37,6 +37,20 @@ func findInDirs(fname string, dirs []string) (string, error) {
 	return "", fmt.Errorf("unable to find %s in %s", fname, dirs)
 }
 
+// ForceWrite forcibly writes a string to a given filepath.
+func ForceWrite(path string, contents string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(contents)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // getCA returns the certificate authority pem bytes.
 func getCA() ([]byte, error) {
 	caPath, err := findInDirs("ca.pem", configDirs)
