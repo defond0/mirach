@@ -20,7 +20,6 @@ import (
 var sysConfDir string
 var userConfDir string
 var configDirs []string
-var timeout = make(chan bool, 1)
 
 var opts struct {
 	// Slice of bool will append 'true' each time the option

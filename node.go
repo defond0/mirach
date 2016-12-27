@@ -148,10 +148,10 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
-	a.res = make(chan AssetResponse, 1)
 	a.resHandler = func(client mqtt.Client, msg mqtt.Message) {
+		a.res = make(chan AssetResponse, 1)
 		res := AssetResponse{}
-		err := json.Unmarshal([]byte(msg.Payload()), &res)
+		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
@@ -174,20 +174,21 @@ func (c *Customer) GetCustomerID() (string, error) {
 	path := fmt.Sprintf("mirach/customer_id/%s", tempID)
 	pubToken := c.client.Publish(path, 1, false, "")
 	pubToken.Wait()
-	if subToken := c.client.Subscribe(path, 1, nil); subToken.Wait() && subToken.Error() != nil {
+	if subToken := c.client.Subscribe(path, 1, c.resHandler); subToken.Wait() && subToken.Error() != nil {
 		fmt.Println(subToken.Error())
 		panic(subToken.Error())
 	}
-	go func() {
-		time.Sleep(30 * time.Second)
-		timeout <- true
-	}()
+	Timeout(10*time.Second, timeoutCh)
 	select {
-	case <-c.res:
-		res := <-c.res
+	case res := <-c.res:
 		c.id = res.ID
-	case <-timeout:
+	case <-timeoutCh:
 		return c.id, errors.New("failed while getting customer_id; check credentials")
+	}
+	viper.Set("customer.id", c.id)
+	err := viper.WriteConfig()
+	if err != nil {
+		panic(err)
 	}
 	return c.id, nil
 }
@@ -198,15 +199,11 @@ func (a *Asset) Register(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	viper.Set("customer_id", custID)
 	path := fmt.Sprintf("mirach/register/%s/%s", custID, a.id)
-	if token := c.client.Subscribe(path, 0, nil); token.Wait() && token.Error() != nil {
+	if token := c.client.Subscribe(path, 0, c.resHandler); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
-	go func() {
-		time.Sleep(30 * time.Second)
-		timeout <- true
-	}()
+	Timeout(30*time.Second, timeoutCh)
 	select {
 	case <-c.res:
 		res := <-c.res
@@ -219,7 +216,7 @@ func (a *Asset) Register(c *Customer) error {
 		if err != nil {
 			return err
 		}
-	case <-timeout:
+	case <-timeoutCh:
 		return errors.New("failed while registering; check credentials")
 	}
 	return nil
