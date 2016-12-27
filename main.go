@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 
 	// may use v2 so we can remove the jobs
@@ -57,8 +58,8 @@ func main() {
 		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
 	if runtime.GOOS == "windows" {
-		userConfDir = "%APPDATA%\\mirach"
-		sysConfDir = "%PROGRAMDATA%\\mirach"
+		userConfDir = filepath.Join("%APPDATA%", "mirach")
+		sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
 	} else {
 		userConfDir = "$HOME/.config/mirach"
 		sysConfDir = "/etc/mirach/"
