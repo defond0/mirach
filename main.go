@@ -78,12 +78,12 @@ func main() {
 	cust := new(Customer)
 	err = cust.Init()
 	if err != nil {
-		jww.ERROR.Printf("customer initialization failed")
+		jww.ERROR.Println("customer initialization failed")
 	}
 	asset := new(Asset)
 	err = asset.Init(cust)
 	if err != nil {
-		jww.ERROR.Printf("asset initialization failed")
+		jww.ERROR.Println("asset initialization failed")
 	}
 
 	plugins := make(map[string]Plugin)
