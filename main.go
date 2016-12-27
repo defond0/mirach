@@ -40,12 +40,10 @@ func getConfig() string {
 	}
 	viper.SetEnvPrefix("mirach")
 	viper.AutomaticEnv()
-	viper.WatchConfig()
 	return viper.ConfigFileUsed()
 }
 
 func main() {
-	// flag.Parse()
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		panic(err)
