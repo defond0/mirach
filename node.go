@@ -111,7 +111,10 @@ func (a *Asset) Init(c *Customer) error {
 		}
 	}
 	if !a.CheckRegistration(c) {
-		a.Register(c)
+		err := a.Register(c)
+		if err != nil {
+			return err
+		}
 	}
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
