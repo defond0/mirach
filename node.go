@@ -205,15 +205,17 @@ func (a *Asset) Register(c *Customer) error {
 	}
 	Timeout(30*time.Second, timeoutCh)
 	select {
-	case <-c.res:
-		res := <-c.res
-		f, err := os.Create(filepath.Join(sysConfDir, "ca.pem"))
-		if err != nil {
+	case res := <-c.res:
+		if err := ForceWrite(filepath.Join(sysConfDir, "ca.pem"), res.CA); err != nil {
 			return err
 		}
-		defer f.Close()
-		_, err = f.WriteString(res.CA)
-		if err != nil {
+		if err := ForceWrite(filepath.Join(sysConfDir, "cert.pem"), res.Cert); err != nil {
+			return err
+		}
+		if err := ForceWrite(filepath.Join(sysConfDir, "public_key.pem"), res.PubKey); err != nil {
+			return err
+		}
+		if err := ForceWrite(filepath.Join(sysConfDir, "private_key.pem"), res.PrivKey); err != nil {
 			return err
 		}
 	case <-timeoutCh:
