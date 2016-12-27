@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"runtime"
@@ -11,7 +10,6 @@ import (
 	// may use v2 so we can remove the jobs
 	// "gopkg.in/robfig/cron.v2"
 
-	"github.com/golang/glog"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
@@ -91,19 +89,19 @@ func main() {
 	plugins := make(map[string]Plugin)
 	err = viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
-		log.Fatal(err)
+		jww.ERROR.Println(err)
 	}
 	cron := cron.New()
 	cron.Start()
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
 	for k, v := range plugins {
-		glog.Infof("Adding to plugin: %s", k)
+		jww.INFO.Printf("Adding to plugin: %s", k)
 		cron.AddFunc(v.Schedule, RunPlugin(v, asset.client))
 	}
 	for _ = range s {
 		// sig is a ^c, handle it
-		glog.Infof("SIGINT, stopping")
+		jww.INFO.Println("SIGINT, stopping")
 		cron.Stop()
 		os.Exit(1)
 	}

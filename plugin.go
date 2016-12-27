@@ -3,11 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/golang/glog"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -25,25 +24,25 @@ type result struct {
 // RunPlugin run a plugin and publishes its results.
 func RunPlugin(p Plugin, c MQTT.Client) func() {
 	return func() {
-		glog.Infof("Running plugin: %s", p.Cmd)
+		jww.INFO.Printf("Running plugin: %s", p.Cmd)
 		cmd := exec.Command(p.Cmd)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			log.Fatal(err)
+			jww.ERROR.Println(err)
 		}
 		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
+			jww.ERROR.Println(err)
 		}
 		var res result
 		if err := json.NewDecoder(stdout).Decode(&res); err != nil {
-			log.Fatal(err)
+			jww.ERROR.Println(err)
 		}
 		err = cmd.Wait()
-		custID := viper.GetString("customer_id")
-		assetID := viper.GetString("asset_id")
+		custID := viper.GetString("customer.id")
+		assetID := viper.GetString("asset.id")
 		mes, err := json.Marshal(res)
 		if err != nil {
-			log.Fatal(err)
+			jww.ERROR.Println(err)
 		}
 		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
 		token := c.Publish(path, 0, false, string(mes))
