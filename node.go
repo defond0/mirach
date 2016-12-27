@@ -101,8 +101,15 @@ func (c *Customer) Init() error {
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init(c *Customer) error {
 	var err error
-	a.id = viper.GetString("asset_id")
-
+	a.id = viper.GetString("asset.id")
+	if a.id == "" {
+		a.id = readAssetID()
+		viper.Set("asset.id", a.id)
+		err = viper.WriteConfig()
+		if err != nil {
+			panic(err)
+		}
+	}
 	if !a.CheckRegistration(c) {
 		a.Register(c)
 	}

@@ -64,15 +64,6 @@ func main() {
 	}
 	configDirs = append(configDirs, ".", userConfDir, sysConfDir)
 	getConfig()
-	assetID := viper.GetString("asset_id")
-	if assetID == "" {
-		assetID = readAssetID()
-	}
-	viper.Set("asset_id", assetID)
-	err = viper.WriteConfig()
-	if err != nil {
-		panic(err)
-	}
 
 	cust := new(Customer)
 	err = cust.Init()
