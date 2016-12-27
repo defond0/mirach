@@ -54,7 +54,7 @@ type AssetResponse struct {
 // Init initializes a Customer MirachNode.
 func (c *Customer) Init() error {
 	var err error
-	if loc := viper.GetString("customer/keys/private_key_path"); loc != "" {
+	if loc := viper.GetString("customer.keys.private_key_path"); loc != "" {
 		c.privKeyPath = loc
 	} else {
 		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private_key.pem"), configDirs)
@@ -66,7 +66,7 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return err
 	}
-	if loc := viper.GetString("customer/keys/cert_path"); loc != "" {
+	if loc := viper.GetString("customer.keys.cert_path"); loc != "" {
 		c.certPath = loc
 	} else {
 		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "cert.pem"), configDirs)
@@ -113,7 +113,7 @@ func (a *Asset) Init(c *Customer) error {
 	if !a.CheckRegistration(c) {
 		a.Register(c)
 	}
-	if loc := viper.GetString("asset/keys/private_key_path"); loc != "" {
+	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
 		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private_key.pem"), configDirs)
@@ -125,7 +125,7 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	if loc := viper.GetString("asset/keys/cert_path"); loc != "" {
+	if loc := viper.GetString("asset.keys.cert_path"); loc != "" {
 		a.certPath = loc
 	} else {
 		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "cert.pem"), configDirs)
@@ -163,6 +163,7 @@ func (a *Asset) Init(c *Customer) error {
 
 // GetCustomerID returns the customer id or an error.
 func (c *Customer) GetCustomerID() (string, error) {
+	c.id = viper.GetString("customer.id")
 	if c.id != "" {
 		return c.id, nil
 	}
