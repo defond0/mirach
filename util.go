@@ -39,6 +39,9 @@ func findInDirs(fname string, dirs []string) (string, error) {
 
 // ForceWrite forcibly writes a string to a given filepath.
 func ForceWrite(path string, contents string) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err
