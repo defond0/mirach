@@ -10,7 +10,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/google/uuid"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -22,32 +22,39 @@ type MirachNode struct {
 	certPath    string
 	cert        []byte
 	client      mqtt.Client
-	resHandler  mqtt.MessageHandler
+	regHandler  mqtt.MessageHandler
+	regMsg      chan RegMsg // channel receiving registration messages
 }
 
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
-	res chan AssetResponse // channel receiving responses
+	cmdHandler mqtt.MessageHandler
+	cmdMsg     chan CmdMsg // channel receiving command messages
 }
 
 // Customer is a Mirach IoT thing representing this customer.
 type Customer struct {
 	MirachNode
-	res chan CustResponse // channel receiving responses
+	idHandler mqtt.MessageHandler
+	idMsg     chan CustIDMsg // channel receiving customer ID messages
 }
 
-// CustResponse is a json response object from IoT.
-type CustResponse struct {
-	ID      string `json:"customer_id"`
+// RegMsg is a json response object from IoT containing client cert keys.
+type RegMsg struct {
 	PrivKey string `json:"private_key"`
 	PubKey  string `json:"public_key"`
 	Cert    string `json:"certificate"`
 	CA      string `json:"ca"`
 }
 
-// AssetResponse is a json response object from IoT.
-type AssetResponse struct {
+// CustIDMsg is a json response object from IoT containing customer ID.
+type CustIDMsg struct {
+	ID string `json:"customer_id"`
+}
+
+// CmdMsg is a json response object from IoT containing an asset command.
+type CmdMsg struct {
 	Cmd string `json:"cmd"`
 }
 
@@ -57,7 +64,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.private_key_path"); loc != "" {
 		c.privKeyPath = loc
 	} else {
-		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private_key.pem"), configDirs)
+		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private.pem.key"), configDirs)
 		if err != nil {
 			return errors.New("customer private key not found")
 		}
@@ -69,7 +76,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.cert_path"); loc != "" {
 		c.certPath = loc
 	} else {
-		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "cert.pem"), configDirs)
+		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "ca.pem.crt"), configDirs)
 		if err != nil {
 			return errors.New("customer cert not found")
 		}
@@ -86,14 +93,8 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return errors.New("customer client connection failed")
 	}
-	c.res = make(chan CustResponse, 1)
-	c.resHandler = func(client mqtt.Client, msg mqtt.Message) {
-		res := CustResponse{}
-		err = json.Unmarshal(msg.Payload(), &res)
-		if err != nil {
-			panic(err)
-		}
-		c.res <- res
+	if _, err = c.GetCustomerID(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -119,7 +120,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private_key.pem"), configDirs)
+		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), configDirs)
 		if err != nil {
 			return errors.New("asset private key not found")
 		}
@@ -131,7 +132,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.cert_path"); loc != "" {
 		a.certPath = loc
 	} else {
-		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "cert.pem"), configDirs)
+		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "ca.pem.crt"), configDirs)
 		if err != nil {
 			return errors.New("asset cert not found")
 		}
@@ -148,18 +149,18 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
-	a.resHandler = func(client mqtt.Client, msg mqtt.Message) {
-		a.res = make(chan AssetResponse, 1)
-		res := AssetResponse{}
+	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
+		a.cmdMsg = make(chan CmdMsg, 1)
+		res := CmdMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
-		a.res <- res
+		a.cmdMsg <- res
 	}
 	path := fmt.Sprintf("mirach/cmd/%s/%s", c.id, a.id)
-	if token := a.client.Subscribe(path, 0, nil); token.Wait() && token.Error() != nil {
-		panic(token.Error())
+	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
+		panic(subToken.Error())
 	}
 	return nil
 }
@@ -170,17 +171,29 @@ func (c *Customer) GetCustomerID() (string, error) {
 	if c.id != "" {
 		return c.id, nil
 	}
-	tempID := uuid.New()
+
+	c.idMsg = make(chan CustIDMsg, 1)
+	c.idHandler = func(client mqtt.Client, msg mqtt.Message) {
+		res := CustIDMsg{}
+		err := json.Unmarshal(msg.Payload(), &res)
+		if err != nil {
+			panic(err)
+		}
+		c.idMsg <- res
+	}
+
+	// tempID := uuid.New()
+	tempID := "temp-UUID"
 	path := fmt.Sprintf("mirach/customer_id/%s", tempID)
 	pubToken := c.client.Publish(path, 1, false, "")
 	pubToken.Wait()
-	if subToken := c.client.Subscribe(path, 1, c.resHandler); subToken.Wait() && subToken.Error() != nil {
+	if subToken := c.client.Subscribe(path, 1, c.idHandler); subToken.Wait() && subToken.Error() != nil {
 		fmt.Println(subToken.Error())
 		panic(subToken.Error())
 	}
 	Timeout(10*time.Second, timeoutCh)
 	select {
-	case res := <-c.res:
+	case res := <-c.idMsg:
 		c.id = res.ID
 	case <-timeoutCh:
 		return c.id, errors.New("failed while getting customer_id; check credentials")
@@ -195,27 +208,33 @@ func (c *Customer) GetCustomerID() (string, error) {
 
 // Register an IoT asset using a customer's client cert.
 func (a *Asset) Register(c *Customer) error {
-	custID, err := c.GetCustomerID()
-	if err != nil {
-		return err
+	c.regMsg = make(chan RegMsg, 1)
+	c.regHandler = func(client mqtt.Client, msg mqtt.Message) {
+		res := RegMsg{}
+		err := json.Unmarshal(msg.Payload(), &res)
+		if err != nil {
+			panic(err)
+		}
+		c.regMsg <- res
 	}
-	path := fmt.Sprintf("mirach/register/%s/%s", custID, a.id)
-	if token := c.client.Subscribe(path, 0, c.resHandler); token.Wait() && token.Error() != nil {
-		return token.Error()
+
+	path := fmt.Sprintf("mirach/register/%s/%s", c.id, a.id)
+	pubToken := c.client.Publish(path, 1, false, "")
+	pubToken.Wait()
+	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
+		panic(subToken.Error())
 	}
 	Timeout(30*time.Second, timeoutCh)
 	select {
-	case res := <-c.res:
-		if err := ForceWrite(filepath.Join(sysConfDir, "ca.pem"), res.CA); err != nil {
+	case res := <-c.regMsg:
+		keyPath := filepath.Join(sysConfDir, "asset", "keys")
+		if err := ForceWrite(filepath.Join(keyPath, "ca.pem.crt"), res.Cert); err != nil {
 			return err
 		}
-		if err := ForceWrite(filepath.Join(sysConfDir, "cert.pem"), res.Cert); err != nil {
+		if err := ForceWrite(filepath.Join(keyPath, "public.pem.key"), res.PubKey); err != nil {
 			return err
 		}
-		if err := ForceWrite(filepath.Join(sysConfDir, "public_key.pem"), res.PubKey); err != nil {
-			return err
-		}
-		if err := ForceWrite(filepath.Join(sysConfDir, "private_key.pem"), res.PrivKey); err != nil {
+		if err := ForceWrite(filepath.Join(keyPath, "private.pem.key"), res.PrivKey); err != nil {
 			return err
 		}
 	case <-timeoutCh:
@@ -227,11 +246,18 @@ func (a *Asset) Register(c *Customer) error {
 // CheckRegistration returns a bool indicating if the asset seems registered.
 // To be registered an asset key file, and customerID in the configuration are required.
 func (a *Asset) CheckRegistration(c *Customer) bool {
+	var err error
+	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
+		a.privKeyPath = loc
+	} else {
+		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), configDirs)
+		if err != nil {
+			return false
+		}
+	}
 	if _, err := os.Stat(a.privKeyPath); os.IsNotExist(err) {
 		return false
 	}
-	if c.id == "" {
-		return false
-	}
+	jww.INFO.Println("asset was registered")
 	return true
 }
