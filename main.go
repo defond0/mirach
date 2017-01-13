@@ -20,6 +20,7 @@ import (
 var sysConfDir string
 var userConfDir string
 var configDirs []string
+var verbosity int
 
 var opts struct {
 	// Slice of bool will append 'true' each time the option
@@ -47,11 +48,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	v := len(opts.Verbose)
+	verbosity = len(opts.Verbose)
 	switch {
-	case v == 1:
+	case verbosity == 1:
 		jww.SetStdoutThreshold(jww.LevelInfo)
-	case v > 1:
+	case verbosity > 1:
 		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
 	if runtime.GOOS == "windows" {
