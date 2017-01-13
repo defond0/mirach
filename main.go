@@ -68,12 +68,16 @@ func main() {
 	cust := new(Customer)
 	err = cust.Init()
 	if err != nil {
-		jww.ERROR.Println("customer initialization failed")
+		msg := "customer initialization failed"
+		customOut(msg, err)
+		os.Exit(1)
 	}
 	asset := new(Asset)
 	err = asset.Init(cust)
 	if err != nil {
-		jww.ERROR.Println("asset initialization failed")
+		msg := "asset initialization failed"
+		customOut(msg, err)
+		os.Exit(1)
 	}
 
 	plugins := make(map[string]Plugin)
@@ -89,9 +93,11 @@ func main() {
 		jww.INFO.Printf("Adding to plugin: %s", k)
 		cron.AddFunc(v.Schedule, RunPlugin(v, asset.client))
 	}
+	msg := "mirach entered running state; plugins loaded"
+	customOut(msg, nil)
 	for _ = range s {
 		// sig is a ^c, handle it
-		jww.INFO.Println("SIGINT, stopping")
+		jww.DEBUG.Println("SIGINT, stopping")
 		cron.Stop()
 		os.Exit(1)
 	}
