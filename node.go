@@ -10,6 +10,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
@@ -89,12 +90,12 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return err
 	}
-	c.client, err = NewClient(ca, c.privKey, c.cert, "mirach-customer-client")
-	if err != nil {
-		return errors.New("customer client connection failed")
-	}
 	if _, err = c.GetCustomerID(); err != nil {
 		return err
+	}
+	c.client, err = NewClient(ca, c.privKey, c.cert, c.id)
+	if err != nil {
+		return errors.New("customer client connection failed")
 	}
 	return nil
 }
@@ -145,7 +146,7 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	a.client, err = NewClient(ca, a.privKey, a.cert, a.id)
+	a.client, err = NewClient(ca, a.privKey, a.cert, c.id+":"+a.id)
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
@@ -172,34 +173,42 @@ func (c *Customer) GetCustomerID() (string, error) {
 		return c.id, nil
 	}
 
-	c.idMsg = make(chan CustIDMsg, 1)
-	c.idHandler = func(client mqtt.Client, msg mqtt.Message) {
+	if c.privKey == nil {
+		c.Init()
+	}
+	ca, err := getCA()
+	client, err := NewClient(ca, c.privKey, c.cert, "mirach-registration-client")
+	if err != nil {
+		return "", errors.New("registration client connection failed")
+	}
+
+	idMsg := make(chan CustIDMsg, 1)
+	idHandler := func(client mqtt.Client, msg mqtt.Message) {
 		res := CustIDMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
-		c.idMsg <- res
+		idMsg <- res
 	}
 
-	// tempID := uuid.New()
-	tempID := "temp-UUID"
+	tempID := uuid.New()
 	path := fmt.Sprintf("mirach/customer_id/%s", tempID)
-	pubToken := c.client.Publish(path, 1, false, "")
+	pubToken := client.Publish(path, 1, false, "")
 	pubToken.Wait()
-	if subToken := c.client.Subscribe(path, 1, c.idHandler); subToken.Wait() && subToken.Error() != nil {
+	if subToken := client.Subscribe(path, 1, idHandler); subToken.Wait() && subToken.Error() != nil {
 		fmt.Println(subToken.Error())
 		panic(subToken.Error())
 	}
-	Timeout(10*time.Second, timeoutCh)
+	timeoutCh := Timeout(10 * time.Second)
 	select {
-	case res := <-c.idMsg:
+	case res := <-idMsg:
 		c.id = res.ID
 	case <-timeoutCh:
 		return c.id, errors.New("failed while getting customer_id; check credentials")
 	}
 	viper.Set("customer.id", c.id)
-	err := viper.WriteConfig()
+	err = viper.WriteConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -224,7 +233,7 @@ func (a *Asset) Register(c *Customer) error {
 	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
 	}
-	Timeout(30*time.Second, timeoutCh)
+	timeoutCh := Timeout(10 * time.Second)
 	select {
 	case res := <-c.regMsg:
 		keyPath := filepath.Join(sysConfDir, "asset", "keys")
