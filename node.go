@@ -145,7 +145,7 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	a.client, err = NewClient(ca, a.privKey, a.cert, a.id)
+	a.client, err = NewClient(ca, a.privKey, a.cert, c.id+":"+a.id)
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
