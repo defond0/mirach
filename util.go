@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-var timeoutCh = make(chan bool, 1)
 
 // Check if File / Directory Exists
 func exists(path string) (bool, error) {
@@ -69,9 +68,11 @@ func getCA() ([]byte, error) {
 
 // Timeout starts a go routine which writes true to the given channel
 // after the given time.
-func Timeout(d time.Duration, ch chan<- bool) {
+func Timeout(d time.Duration) <-chan bool {
+	ch := make(chan bool, 1)
 	go func() {
 		time.Sleep(d)
 		ch <- true
 	}()
+	return ch
 }
