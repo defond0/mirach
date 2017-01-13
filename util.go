@@ -10,6 +10,19 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+// customOut either outputs feedback or a log message at error level.
+func customOut(fbMsg, err interface{}) {
+	switch {
+	case verbosity > 0:
+		if err != nil {
+			jww.ERROR.Println(fmt.Sprint(err))
+		} else {
+			jww.INFO.Println(fmt.Sprint(fbMsg))
+		}
+	default:
+		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
+	}
+}
 
 // Check if File / Directory Exists
 func exists(path string) (bool, error) {
