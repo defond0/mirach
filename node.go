@@ -54,11 +54,6 @@ type CustIDMsg struct {
 	ID string `json:"customer_id"`
 }
 
-// CmdMsg is a json response object from IoT containing an asset command.
-type CmdMsg struct {
-	Cmd string `json:"cmd"`
-}
-
 // Init initializes a Customer MirachNode.
 func (c *Customer) Init() error {
 	var err error
