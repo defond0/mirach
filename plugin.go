@@ -45,7 +45,7 @@ func RunPlugin(p Plugin, c MQTT.Client) func() {
 			jww.ERROR.Println(err)
 		}
 		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
-		token := c.Publish(path, 0, false, string(mes))
+		token := c.Publish(path, 1, false, string(mes))
 		token.Wait()
 	}
 }

@@ -54,11 +54,6 @@ type CustIDMsg struct {
 	ID string `json:"customer_id"`
 }
 
-// CmdMsg is a json response object from IoT containing an asset command.
-type CmdMsg struct {
-	Cmd string `json:"cmd"`
-}
-
 // Init initializes a Customer MirachNode.
 func (c *Customer) Init() error {
 	var err error
@@ -150,8 +145,8 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
+	a.cmdMsg = make(chan CmdMsg, 1)
 	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
-		a.cmdMsg = make(chan CmdMsg, 1)
 		res := CmdMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {

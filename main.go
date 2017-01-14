@@ -93,6 +93,12 @@ func main() {
 		jww.INFO.Printf("Adding to plugin: %s", k)
 		cron.AddFunc(v.Schedule, RunPlugin(v, asset.client))
 	}
+	err = asset.readCmds()
+	if err != nil {
+		msg := "stopped receiving commands; stopping mirach"
+		customOut(msg, err)
+		os.Exit(1)
+	}
 	msg := "mirach entered running state; plugins loaded"
 	customOut(msg, nil)
 	for _ = range s {
