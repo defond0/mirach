@@ -7,8 +7,11 @@ type CmdMsg struct {
 
 func (a *Asset) readCmds() error {
 	go func() {
-		msg := <-a.cmdMsg
-		customOut(msg, nil)
+		for {
+			msg := <-a.cmdMsg
+			customOut("cmd received: "+msg.Cmd, nil)
+		}
 	}()
+	customOut("command channel open", nil)
 	return nil
 }
