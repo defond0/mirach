@@ -145,8 +145,8 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
+	a.cmdMsg = make(chan CmdMsg, 1)
 	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
-		a.cmdMsg = make(chan CmdMsg, 1)
 		res := CmdMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
