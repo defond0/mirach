@@ -63,4 +63,4 @@ lint: ## gofmt goimports
 	-goimport *.go
 
 test: ## run tests
-	go test
+	go test -tags=integration
