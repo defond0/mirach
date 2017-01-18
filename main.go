@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	// may use v2 so we can remove the jobs
-	// "gopkg.in/robfig/cron.v2"
-
 	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
