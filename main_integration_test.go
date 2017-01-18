@@ -3,17 +3,19 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -37,7 +39,7 @@ func TestMain(m *testing.M) {
 	run := m.Run()
 
 	//cleanup config
-	// shell("rm", "config.yaml")
+	shell("rm", "config.yaml")
 
 	//cleanup customer-certs
 	shell("rm", "-r", "./customer")
@@ -73,74 +75,72 @@ func shell(cmd string, args ...string) []byte {
 func TestIntegrationMainRegistration(t *testing.T) {
 	assert := assert.New(t)
 	cleanup_asset_certs()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 	cmd := exec.CommandContext(ctx, "./mirach")
-	stdout, err := cmd.StdoutPipe()
-	err := cmd.Start()
-	assert.Nil(err)
-	select {
-	case <-time.After(40 * time.Second):
-		fmt.Println("overslept")
-	case <-ctx.Done():
-		fmt.Println(ctx.Err()) // prints "context deadline exceeded"
+	stdoutpipe, _ := cmd.StdoutPipe()
+	stdoutscanner := bufio.NewScanner(stdoutpipe)
+	if err := cmd.Start(); err != nil {
+		fmt.Println(err)
 	}
-	cancel()
-	// Even though ctx should have expired already, it is good
-	// practice to call its cancelation function in any case.
-	// Failure to do so may keep the context and its parent alive
-	// longer than necessary.
-	// assert := assert.New(t)
-	// timeChan := Timeout(10 * time.Second)
-	// running := false
-	// for {
-	// 	if !running {
-	// 		fmt.Println("main begining")
-	// 		running = true
-	// 		go main()
-	// 	}
-	// 	var timeout = <-timeChan
-	// 	if timeout {
-	// 		fmt.Println("mirach has run for allotted time interupting and, checking assertions")
-	// 		err := viper.ReadInConfig()
-	// 		// assert we read config correctly
-	// 		assert.Nil(err)
-	// 		// assert we received correct customer_id and wrote it to config
-	// 		assert.Equal(viper.GetString("customer.id"), "00000666")
-	// 		priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
-	// 		// assert we read file w/o error
-	// 		assert.Nil(err)
-	// 		// assert we wrote a private key
-	// 		assert.NotEmpty(priv)
-	// 		ca, err := ioutil.ReadFile("/etc/mirach/asset/keys/ca.pem.crt")
-	// 		// assert we read file w/o error
-	// 		assert.Nil(err)
-	// 		// assert we wrote a cert
-	// 		assert.NotEmpty(ca)
-	// 		break
-	// 	}
-	// }
+	for stdoutscanner.Scan() {
+		scan := stdoutscanner.Text()
+		if scan == "mirach entered running state; plugins loaded" {
+			err := viper.ReadInConfig()
+			// assert we read config correctly
+			assert.Nil(err)
+			// assert we received correct customer_id and wrote it to config
+			assert.Equal(viper.GetString("customer.id"), "00000666")
+			priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
+			// assert we read file w/o error
+			assert.Nil(err)
+			// assert we wrote a private key
+			assert.NotEmpty(priv)
+			ca, err := ioutil.ReadFile("/etc/mirach/asset/keys/ca.pem.crt")
+			// assert we read file w/o error
+			assert.Nil(err)
+			// assert we wrote a cert
+			assert.NotEmpty(ca)
+			cancel()
+		}
+	}
+	select {
+	case <-ctx.Done():
+		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	}
 }
 
 //Attempt to register with customer number 00006913(not it's own)
 func TestIntegrationMainEvilListener(t *testing.T) {
 	cleanup_asset_certs()
 	load_evil_test_config()
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 	assert := assert.New(t)
-	go func() {
-		time.Sleep(60 * time.Second)
-		assert.Fail("mirach did not exit with evil config in 60 seconds")
-	}()
-	defer func() {
-		fmt.Println("mirach has exited, checking assertions to ensure that evil asset not created")
-		// assert we used our evil config
-		assert.Equal("00006913", viper.GetString("customer.id"))
-		priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
-		assert.NotNil(err)
-		assert.Empty(priv)
-		ca, err := ioutil.ReadFile("/etc/mirach/asset/keys/ca.pem.crt")
-		assert.NotNil(err)
-		assert.Empty(ca)
-
-	}()
-	_ = shell("go", "run", "main.go")
+	cmd := exec.CommandContext(ctx, "./mirach")
+	stdoutpipe, _ := cmd.StdoutPipe()
+	stdoutscanner := bufio.NewScanner(stdoutpipe)
+	if err := cmd.Start(); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("bout to scan")
+	for stdoutscanner.Scan() {
+		scan := stdoutscanner.Text()
+		fmt.Println(scan)
+		if scan == "mirach entered running state; plugins loaded" {
+			cancel()
+			// assert we used our evil config
+			assert.Equal("00006913", viper.GetString("customer.id"))
+			priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
+			assert.NotNil(err)
+			assert.Empty(priv)
+			ca, err := ioutil.ReadFile("/etc/mirach/asset/keys/ca.pem.crt")
+			assert.NotNil(err)
+			assert.Empty(ca)
+		}
+	}
+	select {
+	case <-ctx.Done():
+		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	}
 }
