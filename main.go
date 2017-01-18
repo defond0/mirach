@@ -20,8 +20,6 @@ var configDirs []string
 var verbosity int
 
 var opts struct {
-	// Slice of bool will append 'true' each time the option
-	// is encountered (can be set multiple times, like -vvv)
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
 	Version bool   `long:"version" description:"Show version"`
 }

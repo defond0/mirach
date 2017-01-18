@@ -79,11 +79,6 @@ func getCA() ([]byte, error) {
 	return ca, nil
 }
 
-// showVersion will print the version information.
-func showVersion() {
-	fmt.Println("mirach " + version)
-}
-
 // Timeout starts a go routine which writes true to the given channel
 // after the given time.
 func Timeout(d time.Duration) <-chan bool {
