@@ -66,6 +66,7 @@ test: test-integration ## run tests
 	@echo "Tests Run"
 
 test-integration: ## run integration tests
+	go build .
 	go test -v -tags=integration .
 
 test-race-condition: ## run and observe race
