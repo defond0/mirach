@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	// may use v2 so we can remove the jobs
-	// "gopkg.in/robfig/cron.v2"
-
 	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
@@ -23,10 +20,11 @@ var configDirs []string
 var verbosity int
 
 var opts struct {
-	// Slice of bool will append 'true' each time the option
-	// is encountered (can be set multiple times, like -vvv)
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
+	Version bool   `long:"version" description:"Show version"`
 }
+
+var version = "undefined"
 
 func getConfig() string {
 	viper.SetConfigName("config")
@@ -44,9 +42,16 @@ func getConfig() string {
 }
 
 func main() {
-	_, err := flags.Parse(&opts)
-	if err != nil {
-		panic(err)
+	if _, err := flags.Parse(&opts); err != nil {
+		flagsErr, ok := err.(*flags.Error)
+		if ok && flagsErr.Type == flags.ErrHelp {
+			return
+		}
+		panic(flagsErr)
+	}
+	if opts.Version {
+		showVersion()
+		return
 	}
 	verbosity = len(opts.Verbose)
 	switch {
@@ -66,7 +71,7 @@ func main() {
 	getConfig()
 
 	cust := new(Customer)
-	err = cust.Init()
+	err := cust.Init()
 	if err != nil {
 		msg := "customer initialization failed"
 		customOut(msg, err)

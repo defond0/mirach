@@ -1,62 +1,64 @@
-buil.PHONY: clean clean-test clean-pyc clean-build docs help
+PHONY: all archives clean clean-build deploy-docs docs help lint test
 .DEFAULT_GOAL := help
-define BROWSER_PYSCRIPT
-import os, webbrowser, sys
-try:
-	from urllib import pathname2url
-except:
-	from urllib.request import pathname2url
-
-webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
-endef
-export BROWSER_PYSCRIPT
-
-define PRINT_HELP_PYSCRIPT
-import re, sys
-
-for line in sys.stdin:
-	match = re.match(r'^([\w_-]+):.*?## (.*)$$', line)
-	if match:
-		target, help = match.groups()
-		print("%-20s %s" % (target, help))
-endef
-export PRINT_HELP_PYSCRIPT
-BROWSER := python -c "$$BROWSER_PYSCRIPT"
 
 # project variables
 PROJECT_NAME := mirach
+VERSION := $(shell git describe --always --dirty)
+
+# helper variables
+BUILDDIR := ./_build
+ARCDIR := $(BUILDDIR)/arc
+BINDIR := $(BUILDDIR)/bin
+LDFLAGS := "-X main.version=$(VERSION)"
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	$(info available targets:)
+	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+		nb = sub( /^## /, "", helpMsg ); \
+		if(nb == 0) { \
+			helpMsg = $$0; \
+			nb = sub( /^[^:]*:.* ## /, "", helpMsg ); \
+		} \
+		if (nb) \
+			print  $$1 "\t" helpMsg; \
+	} \
+	{ helpMsg = $$0 }' \
+	$(MAKEFILE_LIST) | column -ts $$'\t' | \
+	grep --color '^[^ ]*'
 
-build: test build-linux build-windows ## build all os and arch
+SYSTEMS := linux windows
+ARCHS := 386 amd64
 
-build-linux: build-linux-386 build-linux-amd64 ## build all linux arch
+define PROGRAM_template
+PROG_TARGETS += $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)
+$(BINDIR)/$(PROJECT_NAME)_$(1)_$(2)/$(PROJECT_NAME): export GOOS = $(1)
+$(BINDIR)/$(PROJECT_NAME)_$(1)_$(2)/$(PROJECT_NAME): export GOARCH = $(2)
+ARC_TARGETS += $(ARCDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2).zip
+endef
 
-build-linux-386: ## build linux 386
-	GOOS=linux GOARCH=386 go build -o mirach_linux_386
+$(foreach sys,$(SYSTEMS),$(foreach arch,$(ARCHS),$(eval $(call PROGRAM_template,$(sys),$(arch)))))
 
-build-linux-amd64: ## build linux amd64
-	GOOS=linux GOARCH=amd64 go build -o mirach_linux_amd64
+$(PROG_TARGETS):
+	go build -i -v -ldflags=$(LDFLAGS) -o $@
 
-build-windows: build-windows-386 build-windows-amd64 ## build all windows arch
+$(ARCDIR)/%.zip: $(BINDIR)/%/*
+	@mkdir -p $(ARCDIR)
+	zip -j $@ $<
 
-build-windows-386: ## build windows 386
-	GOOS=windows GOARCH=386 go build -o mirach_win_386.exe
+all: test $(PROG_TARGETS) archives ## build all systems and architectures
 
-build-windows-amd64: ## build windows amd64
-	GOOS=windows GOARCH=amd64 go build -o mirach_win_amd64.exe
+archives: $(ARC_TARGETS) ## archive all builds
 
 clean: clean-build ## clean all
 
 clean-build: ## remove build artifacts
-	rm -rf mirach_*
+	rm -rf $(BUILDDIR)
 
 deploy-docs: docs ## deploy docs to S3 bucket
-	aws s3 sync ./docs/_build/html/ s3://***REMOVED***/$(PROJECT_NAME)/
+	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
 
 docs: ## generate docs
-	echo "Figure out docs"
+	godoc . > ./docs/html/$(PROJECT_NAME).html
 
 lint: ## gofmt goimports
 	gofmt *.go
