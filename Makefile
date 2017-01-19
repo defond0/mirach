@@ -70,7 +70,3 @@ test: test-integration ## run tests
 test-integration: ## run integration tests
 	go build -race .
 	go test -v -tags=integration .
-
-test-race-condition: ## run and observe race
-	go build -race .
-	./mirach -vv

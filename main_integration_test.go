@@ -18,42 +18,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var vipert = viper.New()
+
 func TestMain(m *testing.M) {
 	flag.Parse()
 	os.Args = []string{"-v"}
+	setup()
+	//run tests
+	run := m.Run()
+	cleanup()
+	os.Exit(run)
 
+}
+
+func setup() {
+	cleanup_asset_certs()
 	load_test_config()
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
+	vipert.SetConfigName("config")
+	vipert.SetConfigType("yaml")
+	vipert.AddConfigPath("./")
+	vipert.WatchConfig()
+	vipert.OnConfigChange(func(e fsnotify.Event) {
 	})
 	//grab config from test resources
 	//grab test customer certs from test resources
-	shell("cp", "-r", "test_resources/customer", ".")
-	shell("cp", "test_resources/ca.pem", ".")
+	shell("cp", "-r", "test_resources/customer", "./customer")
+	shell("cp", "test_resources/ca.pem", "./ca.pem")
+}
 
-	//run tests
-	run := m.Run()
-
+func cleanup() {
 	//cleanup config
-	shell("rm", "config.yaml")
+	shell("rm", "./config.yaml")
 
 	//cleanup customer-certs
 	shell("rm", "-r", "./customer")
 	shell("rm", "./ca.pem")
-	cleanup_asset_certs()
-	os.Exit(run)
+
 }
 
 func load_test_config() {
-	shell("cp", "test_resources/config.yaml", ".")
+	shell("cp", "test_resources/config.yaml", "./config.yaml")
 }
 
 func load_evil_test_config() {
-	shell("cp", "test_resources/eve_config.yaml", "config.yaml")
+	shell("cp", "test_resources/eve_config.yaml", "./config.yaml")
 }
 
 func cleanup_asset_certs() {
@@ -71,12 +79,11 @@ func shell(cmd string, args ...string) []byte {
 	return out
 }
 
-//Attempt to register with customer number 00006913(not it's own)
 func TestIntegrationMainRegistration(t *testing.T) {
 	assert := assert.New(t)
-	cleanup_asset_certs()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
+	defer cleanup_asset_certs()
 	cmd := exec.CommandContext(ctx, "./mirach")
 	stdoutpipe, _ := cmd.StdoutPipe()
 	stdoutscanner := bufio.NewScanner(stdoutpipe)
@@ -86,11 +93,8 @@ func TestIntegrationMainRegistration(t *testing.T) {
 	for stdoutscanner.Scan() {
 		scan := stdoutscanner.Text()
 		if scan == "mirach entered running state; plugins loaded" {
-			err := viper.ReadInConfig()
-			// assert we read config correctly
-			assert.Nil(err)
 			// assert we received correct customer_id and wrote it to config
-			assert.Equal(viper.GetString("customer.id"), "00000666")
+			assert.Equal(vipert.GetString("customer.id"), "00000666")
 			priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
 			// assert we read file w/o error
 			assert.Nil(err)
@@ -112,10 +116,10 @@ func TestIntegrationMainRegistration(t *testing.T) {
 
 //Attempt to register with customer number 00006913(not it's own)
 func TestIntegrationMainEvilListener(t *testing.T) {
-	cleanup_asset_certs()
 	load_evil_test_config()
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 	defer cancel()
+	defer cleanup_asset_certs()
 	assert := assert.New(t)
 	cmd := exec.CommandContext(ctx, "./mirach")
 	stdoutpipe, _ := cmd.StdoutPipe()
@@ -123,14 +127,12 @@ func TestIntegrationMainEvilListener(t *testing.T) {
 	if err := cmd.Start(); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("bout to scan")
 	for stdoutscanner.Scan() {
 		scan := stdoutscanner.Text()
-		fmt.Println(scan)
-		if scan == "mirach entered running state; plugins loaded" {
+		if scan == "asset initialization failed" {
 			cancel()
 			// assert we used our evil config
-			assert.Equal("00006913", viper.GetString("customer.id"))
+			assert.Equal("00006913", vipert.GetString("customer.id"))
 			priv, err := ioutil.ReadFile("/etc/mirach/asset/keys/private.pem.key")
 			assert.NotNil(err)
 			assert.Empty(priv)
