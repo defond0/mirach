@@ -24,8 +24,6 @@ var opts struct {
 	Version bool   `long:"version" description:"Show version"`
 }
 
-var version = "undefined"
-
 func getConfig() string {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
