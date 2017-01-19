@@ -46,6 +46,8 @@ func findInDirs(fname string, dirs []string) (string, error) {
 			return fpath, nil
 		}
 	}
+
+	jww.INFO.Printf("unable to find %s in %s", fname, dirs)
 	return "", fmt.Errorf("unable to find %s in %s", fname, dirs)
 }
 

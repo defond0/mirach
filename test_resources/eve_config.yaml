@@ -1,4 +1,7 @@
-# For details on schedule statements, see here: https://godoc.org/github.com/robfig/cron
+asset:
+  id: "000006913-evil-and-bad-for-you"
+customer:
+  id: "00006913"
 plugins:
   pkg_compliance:
     cmd: pkg_compliance

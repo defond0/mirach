@@ -64,5 +64,9 @@ lint: ## gofmt goimports
 	gofmt *.go
 	-goimport *.go
 
-test: ## run tests
-	go test
+test: ## run unit tests
+	@echo "No unit tests for now, but make test-integration will run integration tests"
+
+test-integration: ## run integration tests
+	go build -race .
+	go test -v -tags=integration .
