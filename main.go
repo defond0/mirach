@@ -8,17 +8,19 @@ import (
 	"path/filepath"
 	"runtime"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
-var sysConfDir string
-var userConfDir string
-var configDirs []string
-var verbosity int
-
+var AppConfig struct {
+	sysConfDir  string
+	userConfDir string
+	configDirs  []string
+	verbosity   int
+}
 var opts struct {
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
 	Version bool   `long:"version" description:"Show version"`
@@ -27,7 +29,7 @@ var opts struct {
 func getConfig() string {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	for _, d := range configDirs {
+	for _, d := range AppConfig.configDirs {
 		viper.AddConfigPath(d)
 	}
 	err := viper.ReadInConfig()
@@ -39,7 +41,7 @@ func getConfig() string {
 	return viper.ConfigFileUsed()
 }
 
-func main() {
+func parseCommand() {
 	if _, err := flags.Parse(&opts); err != nil {
 		flagsErr, ok := err.(*flags.Error)
 		if ok && flagsErr.Type == flags.ErrHelp {
@@ -47,27 +49,36 @@ func main() {
 		}
 		panic(flagsErr)
 	}
-	if opts.Version {
-		showVersion()
-		return
-	}
-	verbosity = len(opts.Verbose)
+}
+
+func configureLogging() {
+	AppConfig.verbosity = len(opts.Verbose)
 	switch {
-	case verbosity == 1:
+	case AppConfig.verbosity == 1:
 		jww.SetStdoutThreshold(jww.LevelInfo)
-	case verbosity > 1:
+	case AppConfig.verbosity > 1:
 		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
-	if runtime.GOOS == "windows" {
-		userConfDir = filepath.Join("%APPDATA%", "mirach")
-		sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
-	} else {
-		userConfDir = "$HOME/.config/mirach"
-		sysConfDir = "/etc/mirach/"
-	}
-	configDirs = append(configDirs, ".", userConfDir, sysConfDir)
-	getConfig()
+}
 
+func setConfigDirs() {
+	if runtime.GOOS == "windows" {
+		AppConfig.userConfDir = filepath.Join("%APPDATA%", "mirach")
+		AppConfig.sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
+	} else {
+		AppConfig.userConfDir = "$HOME/.config/mirach"
+		AppConfig.sysConfDir = "/etc/mirach/"
+	}
+	AppConfig.configDirs = append(AppConfig.configDirs, ".", AppConfig.userConfDir, AppConfig.sysConfDir)
+}
+
+func initializeConfigAndLogging() {
+	configureLogging()
+	setConfigDirs()
+	getConfig()
+}
+
+func getCustomer() *Customer {
 	cust := new(Customer)
 	err := cust.Init()
 	if err != nil {
@@ -75,28 +86,35 @@ func main() {
 		customOut(msg, err)
 		os.Exit(1)
 	}
+	return cust
+}
+
+func getAsset(cust *Customer) *Asset {
 	asset := new(Asset)
-	err = asset.Init(cust)
+	err := asset.Init(cust)
 	if err != nil {
 		msg := "asset initialization failed"
 		customOut(msg, err)
 		os.Exit(1)
 	}
+	return asset
+}
 
+func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	plugins := make(map[string]Plugin)
-	err = viper.UnmarshalKey("plugins", &plugins)
+	err := viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
 		jww.ERROR.Println(err)
 	}
-	cron := cron.New()
 	cron.Start()
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt)
 	for k, v := range plugins {
 		jww.INFO.Printf("Adding to plugin: %s", k)
-		cron.AddFunc(v.Schedule, RunPlugin(v, asset.client))
+		cron.AddFunc(v.Schedule, RunPlugin(v, client))
 	}
-	err = asset.readCmds()
+}
+
+func handleCommands(asset *Asset) {
+	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
 		customOut(msg, err)
@@ -104,7 +122,24 @@ func main() {
 	}
 	msg := "mirach entered running state; plugins loaded"
 	customOut(msg, nil)
-	for _ = range s {
+
+}
+
+func main() {
+	parseCommand()
+	if opts.Version {
+		showVersion()
+		return
+	}
+	initializeConfigAndLogging()
+	cust := getCustomer()
+	asset := getAsset(cust)
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt)
+	cron := cron.New()
+	handlePlugins(asset.client, cron)
+	handleCommands(asset)
+	for _ = range signalChannel {
 		// sig is a ^c, handle it
 		jww.DEBUG.Println("SIGINT, stopping")
 		cron.Stop()
