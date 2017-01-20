@@ -22,7 +22,6 @@ var vipert = viper.New()
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	os.Args = []string{"-v"}
 	setup()
 	//run tests
 	run := m.Run()
@@ -81,7 +80,7 @@ func shell(cmd string, args ...string) []byte {
 
 func TestIntegrationMainRegistration(t *testing.T) {
 	assert := assert.New(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	defer cleanup_asset_certs()
 	cmd := exec.CommandContext(ctx, "./mirach")
@@ -108,10 +107,7 @@ func TestIntegrationMainRegistration(t *testing.T) {
 			cancel()
 		}
 	}
-	select {
-	case <-ctx.Done():
-		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
-	}
+	assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
 }
 
 //Attempt to register with customer number 00006913(not it's own)
@@ -141,8 +137,5 @@ func TestIntegrationMainEvilListener(t *testing.T) {
 			assert.Empty(ca)
 		}
 	}
-	select {
-	case <-ctx.Done():
-		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
-	}
+	assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
 }
