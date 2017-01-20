@@ -107,7 +107,10 @@ func TestIntegrationMainRegistration(t *testing.T) {
 			cancel()
 		}
 	}
-	assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	select {
+	case <-ctx.Done():
+		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	}
 }
 
 //Attempt to register with customer number 00006913(not it's own)
@@ -137,5 +140,9 @@ func TestIntegrationMainEvilListener(t *testing.T) {
 			assert.Empty(ca)
 		}
 	}
-	assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	select {
+	case <-ctx.Done():
+		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
+	}
+
 }
