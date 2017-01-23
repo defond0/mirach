@@ -21,10 +21,10 @@ func NewClient(ca, privKey, cert []byte, id string) (mqtt.Client, error) {
 		InsecureSkipVerify: true,
 	}
 	conf.BuildNameToCertificate()
-	opts := mqtt.NewClientOptions().AddBroker("***REMOVED***")
-	opts.SetTLSConfig(conf)
-	opts.SetClientID(id)
-	c := mqtt.NewClient(opts)
+	options := mqtt.NewClientOptions().AddBroker("***REMOVED***")
+	options.SetTLSConfig(conf)
+	options.SetClientID(id)
+	c := mqtt.NewClient(options)
 	token := c.Connect()
 	if token.Wait() && token.Error() != nil {
 		return nil, token.Error()
