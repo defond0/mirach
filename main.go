@@ -15,21 +15,59 @@ import (
 	"github.com/spf13/viper"
 )
 
-var AppConfig struct {
+//this is a mirach interface
+type baseMirachSession interface {
+	getConfig() string
+	configureLogging()
+	setConfigDirs()
+	initializeConfigAndLogging()
+	getCustomer() *Customer
+	getAsset(cust *Customer) *Asset
+	handlePlugins(client mqtt.Client, cron *cron.Cron)
+	handleCommands(asset *Asset)
+	getSysConfDir() string
+	getUserConfDir() string
+	getConfigDirs() []string
+	getVerbosity() int
+}
+
+//this is a mirach struct
+type mirachSession struct {
 	sysConfDir  string
 	userConfDir string
 	configDirs  []string
 	verbosity   int
+	customer    *Customer
+	asset       *Asset
 }
+
+var Mirach baseMirachSession
+
 var opts struct {
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
 	Version bool   `long:"version" description:"Show version"`
 }
 
-func getConfig() string {
+func (s mirachSession) getVerbosity() int {
+	return s.verbosity
+}
+
+func (s mirachSession) getSysConfDir() string {
+	return s.sysConfDir
+}
+
+func (s mirachSession) getUserConfDir() string {
+	return s.userConfDir
+}
+
+func (s mirachSession) getConfigDirs() []string {
+	return s.configDirs
+}
+
+func (s mirachSession) getConfig() string {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	for _, d := range AppConfig.configDirs {
+	for _, d := range s.configDirs {
 		viper.AddConfigPath(d)
 	}
 	err := viper.ReadInConfig()
@@ -41,7 +79,7 @@ func getConfig() string {
 	return viper.ConfigFileUsed()
 }
 
-func parseCommand() {
+func (s mirachSession) parseCommand() {
 	if _, err := flags.Parse(&opts); err != nil {
 		flagsErr, ok := err.(*flags.Error)
 		if ok && flagsErr.Type == flags.ErrHelp {
@@ -51,34 +89,34 @@ func parseCommand() {
 	}
 }
 
-func configureLogging() {
-	AppConfig.verbosity = len(opts.Verbose)
+func (s mirachSession) configureLogging() {
+	s.verbosity = len(opts.Verbose)
 	switch {
-	case AppConfig.verbosity == 1:
+	case s.verbosity == 1:
 		jww.SetStdoutThreshold(jww.LevelInfo)
-	case AppConfig.verbosity > 1:
+	case s.verbosity > 1:
 		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
 }
 
-func setConfigDirs() {
+func (s mirachSession) setConfigDirs() {
 	if runtime.GOOS == "windows" {
-		AppConfig.userConfDir = filepath.Join("%APPDATA%", "mirach")
-		AppConfig.sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
+		s.userConfDir = filepath.Join("%APPDATA%", "mirach")
+		s.sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
 	} else {
-		AppConfig.userConfDir = "$HOME/.config/mirach"
-		AppConfig.sysConfDir = "/etc/mirach/"
+		s.userConfDir = "$HOME/.config/mirach"
+		s.sysConfDir = "/etc/mirach/"
 	}
-	AppConfig.configDirs = append(AppConfig.configDirs, ".", AppConfig.userConfDir, AppConfig.sysConfDir)
+	s.configDirs = append(s.configDirs, ".", s.userConfDir, s.sysConfDir)
 }
 
-func initializeConfigAndLogging() {
-	configureLogging()
-	setConfigDirs()
-	getConfig()
+func (s mirachSession) initializeConfigAndLogging() {
+	s.configureLogging()
+	s.setConfigDirs()
+	s.getConfig()
 }
 
-func getCustomer() *Customer {
+func (s mirachSession) getCustomer() *Customer {
 	cust := new(Customer)
 	err := cust.Init()
 	if err != nil {
@@ -86,10 +124,11 @@ func getCustomer() *Customer {
 		customOut(msg, err)
 		os.Exit(1)
 	}
-	return cust
+	s.customer = cust
+	return s.customer
 }
 
-func getAsset(cust *Customer) *Asset {
+func (s mirachSession) getAsset(cust *Customer) *Asset {
 	asset := new(Asset)
 	err := asset.Init(cust)
 	if err != nil {
@@ -97,10 +136,11 @@ func getAsset(cust *Customer) *Asset {
 		customOut(msg, err)
 		os.Exit(1)
 	}
-	return asset
+	s.asset = asset
+	return s.asset
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.Cron) {
+func (s mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	plugins := make(map[string]Plugin)
 	err := viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
@@ -113,7 +153,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	}
 }
 
-func handleCommands(asset *Asset) {
+func (s mirachSession) handleCommands(asset *Asset) {
 	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
@@ -126,19 +166,20 @@ func handleCommands(asset *Asset) {
 }
 
 func main() {
-	parseCommand()
+	Mirach := mirachSession{}
+	Mirach.parseCommand()
 	if opts.Version {
 		showVersion()
 		return
 	}
-	initializeConfigAndLogging()
-	cust := getCustomer()
-	asset := getAsset(cust)
+	Mirach.initializeConfigAndLogging()
+	cust := Mirach.getCustomer()
+	asset := Mirach.getAsset(cust)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
 	cron := cron.New()
-	handlePlugins(asset.client, cron)
-	handleCommands(asset)
+	Mirach.handlePlugins(asset.client, cron)
+	Mirach.handleCommands(asset)
 	for _ = range signalChannel {
 		// sig is a ^c, handle it
 		jww.DEBUG.Println("SIGINT, stopping")
