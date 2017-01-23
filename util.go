@@ -13,7 +13,7 @@ import (
 // customOut either outputs feedback or a log message at error level.
 func customOut(fbMsg, err interface{}) {
 	switch {
-	case AppConfig.verbosity > 0:
+	case Mirach.getVerbosity > 0:
 		if err != nil {
 			jww.ERROR.Println(fmt.Sprint(err))
 		} else {
@@ -70,7 +70,7 @@ func ForceWrite(path string, contents string) error {
 
 // getCA returns the certificate authority pem bytes.
 func getCA() ([]byte, error) {
-	caPath, err := findInDirs("ca.pem", AppConfig.configDirs)
+	caPath, err := findInDirs("ca.pem", Mirach.getConfigDirs())
 	if err != nil {
 		return nil, err
 	}

@@ -47,7 +47,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), AppConfig.configDirs)
+		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), Mirach.getConfigDirs())
 		if err != nil {
 			return errors.New("asset private key not found")
 		}
@@ -59,7 +59,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.cert_path"); loc != "" {
 		a.certPath = loc
 	} else {
-		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "ca.pem.crt"), AppConfig.configDirs)
+		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "ca.pem.crt"), Mirach.getConfigDirs())
 		if err != nil {
 			return errors.New("asset cert not found")
 		}
@@ -115,7 +115,7 @@ func (a *Asset) Register(c *Customer) error {
 	timeoutCh := Timeout(10 * time.Second)
 	select {
 	case res := <-c.regMsg:
-		keyPath := filepath.Join(AppConfig.sysConfDir, "asset", "keys")
+		keyPath := filepath.Join(Mirach.getSysConfDir(), "asset", "keys")
 		if err := ForceWrite(filepath.Join(keyPath, "ca.pem.crt"), res.Cert); err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), AppConfig.configDirs)
+		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), Mirach.getConfigDirs())
 		if err != nil {
 			return false
 		}

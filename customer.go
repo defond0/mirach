@@ -31,7 +31,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.private_key_path"); loc != "" {
 		c.privKeyPath = loc
 	} else {
-		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private.pem.key"), AppConfig.configDirs)
+		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private.pem.key"), Mirach.getConfigDirs())
 		if err != nil {
 			return errors.New("customer private key not found")
 		}
@@ -43,7 +43,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.cert_path"); loc != "" {
 		c.certPath = loc
 	} else {
-		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "ca.pem.crt"), AppConfig.configDirs)
+		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "ca.pem.crt"), Mirach.getConfigDirs())
 		if err != nil {
 			return errors.New("customer cert not found")
 		}
