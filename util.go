@@ -13,7 +13,7 @@ import (
 // customOut either outputs feedback or a log message at error level.
 func customOut(fbMsg, err interface{}) {
 	switch {
-	case Mirach.getVerbosity > 0:
+	case Mirach.getVerbosity() > 0:
 		if err != nil {
 			jww.ERROR.Println(fmt.Sprint(err))
 		} else {
