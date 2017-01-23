@@ -71,7 +71,7 @@ publish:
 	@echo "push to s3 at some point"
 
 release: req-release-type req-release-repo clean ## package and upload a release
-	release -t $(RELEASE_TYPE) -n -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
+	release -t $(RELEASE_TYPE) -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
 
 req-release-type:
 ifndef RELEASE_TYPE
