@@ -2,86 +2,112 @@
 package main
 
 import (
-	"encoding/json"
-	"flag"
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 
-	// may use v2 so we can remove the jobs
-	// "gopkg.in/robfig/cron.v2"
-
-	"github.com/golang/glog"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/robfig/cron"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
-type Plugin struct {
-	Label    string `json:"label"`
-	Cmd      string `json:"cmd"`
-	Schedule string `json:"schedule"`
+var sysConfDir string
+var userConfDir string
+var configDirs []string
+var verbosity int
+
+var opts struct {
+	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
+	Version bool   `long:"version" description:"Show version"`
 }
 
-type result struct {
-	Type string `json:"type"`
-	Data string `json:"data"`
-}
-
-func getConfig() {
+func getConfig() string {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/mirach/")
-	viper.AddConfigPath("$HOME/.config/mirach")
-	viper.AddConfigPath(".")
+	for _, d := range configDirs {
+		viper.AddConfigPath(d)
+	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-	viper.WatchConfig()
-}
-
-func RunPlugin(p Plugin) func() {
-	return func() {
-		glog.Infof("Running plugin: %s", p.Cmd)
-		cmd := exec.Command(p.Cmd)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
-		}
-		var res result
-		if err := json.NewDecoder(stdout).Decode(&res); err != nil {
-			log.Fatal(err)
-		}
-		err = cmd.Wait()
-		fmt.Printf("type: %s, data: %s\n", res.Type, res.Data)
-	}
+	viper.SetEnvPrefix("mirach")
+	viper.AutomaticEnv()
+	return viper.ConfigFileUsed()
 }
 
 func main() {
-	flag.Parse()
+	if _, err := flags.Parse(&opts); err != nil {
+		flagsErr, ok := err.(*flags.Error)
+		if ok && flagsErr.Type == flags.ErrHelp {
+			return
+		}
+		panic(flagsErr)
+	}
+	if opts.Version {
+		showVersion()
+		return
+	}
+	verbosity = len(opts.Verbose)
+	switch {
+	case verbosity == 1:
+		jww.SetStdoutThreshold(jww.LevelInfo)
+	case verbosity > 1:
+		jww.SetStdoutThreshold(jww.LevelTrace)
+	}
+	if runtime.GOOS == "windows" {
+		userConfDir = filepath.Join("%APPDATA%", "mirach")
+		sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
+	} else {
+		userConfDir = "$HOME/.config/mirach"
+		sysConfDir = "/etc/mirach/"
+	}
+	configDirs = append(configDirs, ".", userConfDir, sysConfDir)
 	getConfig()
-	c := cron.New()
-	c.Start()
+
+	cust := new(Customer)
+	err := cust.Init()
+	if err != nil {
+		msg := "customer initialization failed"
+		customOut(msg, err)
+		os.Exit(1)
+	}
+	asset := new(Asset)
+	err = asset.Init(cust)
+	if err != nil {
+		msg := "asset initialization failed"
+		customOut(msg, err)
+		os.Exit(1)
+	}
+
+	plugins := make(map[string]Plugin)
+	err = viper.UnmarshalKey("plugins", &plugins)
+	if err != nil {
+		jww.ERROR.Println(err)
+	}
+	cron := cron.New()
+	cron.Start()
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
-	plugins := make(map[string]Plugin)
-	err := viper.UnmarshalKey("plugins", &plugins)
-	if err != nil {
-		log.Fatal(err)
-	}
 	for k, v := range plugins {
-		glog.Infof("Adding to plugin: %s", k)
-		c.AddFunc(v.Schedule, RunPlugin(v))
+		jww.INFO.Printf("Adding to plugin: %s", k)
+		cron.AddFunc(v.Schedule, RunPlugin(v, asset.client))
 	}
+	err = asset.readCmds()
+	if err != nil {
+		msg := "stopped receiving commands; stopping mirach"
+		customOut(msg, err)
+		os.Exit(1)
+	}
+	msg := "mirach entered running state; plugins loaded"
+	customOut(msg, nil)
 	for _ = range s {
 		// sig is a ^c, handle it
-		glog.Infof("SIGINT, stopping")
-		c.Stop()
+		jww.DEBUG.Println("SIGINT, stopping")
+		cron.Stop()
 		os.Exit(1)
 	}
 }
