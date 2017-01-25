@@ -70,3 +70,6 @@ test: ## run unit tests
 test-integration: ## run integration tests
 	go build -race .
 	go test -v -tags=integration .
+
+mqtt-paho-mocks:
+	mockery -inpkg -dir ~/projects/go/src/github.com/eclipse/paho.mqtt.golang/  -all -note "Generated do not edit" -output ~/projects/go/src/cleardata.com/mirach/.mocks

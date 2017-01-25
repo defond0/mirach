@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,26 +36,26 @@ func TestSetConfigDirs(t *testing.T) {
 	assert.Equal(Mirach.getConfigDirs(), []string{".", Mirach.getUserConfDir(), Mirach.getSysConfDir()})
 }
 
-func TestRunPlugin(t *testing.T) {
-	viper.SetConfigName("config")
-	viper.Set("customer.id", "unit-test")
-	viper.Set("asset.id", "unit-test")
-	shell("cp", "./test_resources/unit-test.sh", ".")
-	defer shell("rm", "./unit-test.sh")
-	assert := assert.New(t)
-	test_plug := Plugin{}
-	test_plug.Label = "unit-test-plugin"
-	test_plug.Cmd = "./unit-test.sh"
-	test_plug.Schedule = "doesn't matter"
-	// c := new(mocks.Client)
-	// token := new(mocks.Token)
-	// token.On("Wait").Return()
-	// var qos uint8
-	// qos = 1
-	// c.On("Publish", "mirach/data/unit-test/unit-test", qos, false, "{\"type\":\"unit\",\"data\":\"test\"}").Return(token)
-	// out := RunPlugin(test_plug, c)
-	// assert.NotNil(out)
-	// out()
-	// token.AssertExpectations(t)
-	// c.AssertExpectations(t)
-}
+// func TestRunPlugin(t *testing.T) {
+// 	viper.SetConfigName("config")
+// 	viper.Set("customer.id", "unit-test")
+// 	viper.Set("asset.id", "unit-test")
+// 	shell("cp", "./test_resources/unit-test.sh", ".")
+// 	defer shell("rm", "./unit-test.sh")
+// 	assert := assert.New(t)
+// 	test_plug := Plugin{}
+// 	test_plug.Label = "unit-test-plugin"
+// 	test_plug.Cmd = "./unit-test.sh"
+// 	test_plug.Schedule = "doesn't matter"
+// 	// c := new(mocks.Client)
+// 	// token := new(mocks.Token)
+// 	// token.On("Wait").Return()
+// 	// var qos uint8
+// 	// qos = 1
+// 	// c.On("Publish", "mirach/data/unit-test/unit-test", qos, false, "{\"type\":\"unit\",\"data\":\"test\"}").Return(token)
+// 	// out := RunPlugin(test_plug, c)
+// 	// assert.NotNil(out)
+// 	// out()
+// 	// token.AssertExpectations(t)
+// 	// c.AssertExpectations(t)
+// }
