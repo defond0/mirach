@@ -60,11 +60,33 @@ deploy-docs: docs ## deploy docs to S3 bucket
 docs: ## generate docs
 	godoc . > ./docs/html/$(PROJECT_NAME).html
 
+install: ## install to GOPATH
+	go install -v -ldflags=$(LDFLAGS)
+
 lint: ## gofmt goimports
 	gofmt *.go
 	-goimport *.go
 
 test: test-unit ## run unit tests
+
+publish:
+	@echo "push to s3 at some point"
+
+release: req-release-type req-release-repo clean ## package and upload a release
+	release -t $(RELEASE_TYPE) -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
+
+req-release-type:
+ifndef RELEASE_TYPE
+	$(error RELEASE_TYPE is undefined)
+endif
+
+req-release-repo:
+ifndef RELEASE_REPO
+	$(error RELEASE_REPO is undefined)
+endif
+
+test: ## run unit tests
+	@echo "No unit tests for now, but make test-integration will run integration tests"
 
 test-integration: ## run integration tests
 	go build -race .
