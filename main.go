@@ -29,6 +29,7 @@ type baseMirachSession interface {
 	getUserConfDir() string
 	getConfigDirs() []string
 	getVerbosity() int
+	parseCommand()
 }
 
 //this is a mirach struct
@@ -48,25 +49,24 @@ var opts struct {
 	Version bool   `long:"version" description:"Show version"`
 }
 
-func (s mirachSession) getVerbosity() int {
+func (s *mirachSession) getVerbosity() int {
 	return s.verbosity
 }
 
-func (s mirachSession) getSysConfDir() string {
+func (s *mirachSession) getSysConfDir() string {
 	return s.sysConfDir
 }
 
-func (s mirachSession) getUserConfDir() string {
+func (s *mirachSession) getUserConfDir() string {
 	return s.userConfDir
 }
 
-func (s mirachSession) getConfigDirs() []string {
+func (s *mirachSession) getConfigDirs() []string {
 	return s.configDirs
 }
 
-func (s mirachSession) getConfig() string {
+func (s *mirachSession) getConfig() string {
 	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	for _, d := range s.configDirs {
 		viper.AddConfigPath(d)
 	}
@@ -79,7 +79,7 @@ func (s mirachSession) getConfig() string {
 	return viper.ConfigFileUsed()
 }
 
-func (s mirachSession) parseCommand() {
+func (s *mirachSession) parseCommand() {
 	if _, err := flags.Parse(&opts); err != nil {
 		flagsErr, ok := err.(*flags.Error)
 		if ok && flagsErr.Type == flags.ErrHelp {
@@ -89,7 +89,7 @@ func (s mirachSession) parseCommand() {
 	}
 }
 
-func (s mirachSession) configureLogging() {
+func (s *mirachSession) configureLogging() {
 	s.verbosity = len(opts.Verbose)
 	switch {
 	case s.verbosity == 1:
@@ -99,7 +99,7 @@ func (s mirachSession) configureLogging() {
 	}
 }
 
-func (s mirachSession) setConfigDirs() {
+func (s *mirachSession) setConfigDirs() {
 	if runtime.GOOS == "windows" {
 		s.userConfDir = filepath.Join("%APPDATA%", "mirach")
 		s.sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
@@ -110,13 +110,14 @@ func (s mirachSession) setConfigDirs() {
 	s.configDirs = append(s.configDirs, ".", s.userConfDir, s.sysConfDir)
 }
 
-func (s mirachSession) initializeConfigAndLogging() {
+func (s *mirachSession) initializeConfigAndLogging() {
 	s.configureLogging()
 	s.setConfigDirs()
 	s.getConfig()
+
 }
 
-func (s mirachSession) getCustomer() *Customer {
+func (s *mirachSession) getCustomer() *Customer {
 	cust := new(Customer)
 	err := cust.Init()
 	if err != nil {
@@ -128,7 +129,7 @@ func (s mirachSession) getCustomer() *Customer {
 	return s.customer
 }
 
-func (s mirachSession) getAsset(cust *Customer) *Asset {
+func (s *mirachSession) getAsset(cust *Customer) *Asset {
 	asset := new(Asset)
 	err := asset.Init(cust)
 	if err != nil {
@@ -140,7 +141,7 @@ func (s mirachSession) getAsset(cust *Customer) *Asset {
 	return s.asset
 }
 
-func (s mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
+func (s *mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	plugins := make(map[string]Plugin)
 	err := viper.UnmarshalKey("plugins", &plugins)
 	if err != nil {
@@ -149,11 +150,17 @@ func (s mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	cron.Start()
 	for k, v := range plugins {
 		jww.INFO.Printf("Adding to plugin: %s", k)
-		cron.AddFunc(v.Schedule, RunPlugin(v, client))
+		err := cron.AddFunc(v.Schedule, RunPlugin(v, client))
+		if err != nil {
+			msg := "failed to launch plugins"
+			customOut(msg, err)
+			os.Exit(1)
+		}
+
 	}
 }
 
-func (s mirachSession) handleCommands(asset *Asset) {
+func (s *mirachSession) handleCommands(asset *Asset) {
 	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
@@ -166,14 +173,20 @@ func (s mirachSession) handleCommands(asset *Asset) {
 }
 
 func main() {
-	Mirach := mirachSession{}
+	//create mirach session struct
+	Mirach = &mirachSession{}
+	//parsecommand
 	Mirach.parseCommand()
+	//if its version get it over with
 	if opts.Version {
 		showVersion()
 		return
 	}
+	//Initialize Configuration and Logging
 	Mirach.initializeConfigAndLogging()
+	//Initialize customer struct
 	cust := Mirach.getCustomer()
+	//Initialize asset struct
 	asset := Mirach.getAsset(cust)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
