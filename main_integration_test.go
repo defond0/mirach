@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,6 @@ var vipert = viper.New()
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	os.Args = []string{"-v"}
 	setup()
 	//run tests
 	run := m.Run()
@@ -47,41 +47,36 @@ func setup() {
 }
 
 func cleanup() {
-	//cleanup config
-	shell("rm", "./config.yaml")
-
-	//cleanup customer-certs
-	shell("rm", "-r", "./customer")
-	shell("rm", "./ca.pem")
-
+	cleanup_config()
+	cleanup_certs()
 }
 
-func load_test_config() {
-	shell("cp", "test_resources/config.yaml", "./config.yaml")
+func TestInitializeConfigAndLogging(t *testing.T) {
+	//TODO: use afero move to unit test
+	load_test_config()
+	assert := assert.New(t)
+	Mirach = &mirachSession{}
+	opts.Verbose = []bool{}
+	Mirach.initializeConfigAndLogging()
+	assert.NotNil(Mirach.getSysConfDir())
+	assert.NotNil(Mirach.getUserConfDir())
+	assert.Equal(Mirach.getVerbosity(), 0, "Expected vebosity of 0")
+	assert.Equal(jww.StdoutThreshold(), jww.LevelError)
+	assert.Equal(Mirach.getConfigDirs(), []string{".", Mirach.getUserConfDir(), Mirach.getSysConfDir()})
 }
 
-func load_evil_test_config() {
-	shell("cp", "test_resources/eve_config.yaml", "./config.yaml")
-}
-
-func cleanup_asset_certs() {
-	shell("rm", "-r", "/etc/mirach/asset")
-}
-
-func shell(cmd string, args ...string) []byte {
-	out, err := exec.Command(cmd, args...).Output()
-	if err != nil {
-		fmt.Println(err)
-	}
-	if string(out) != "" && string(out) != " " {
-		fmt.Println(string(out))
-	}
-	return out
+func TestGetCA(t *testing.T) {
+	//TODO: use afero move to unit test
+	assert := assert.New(t)
+	correct, err := ioutil.ReadFile("./ca.pem")
+	ca, err := getCA()
+	assert.Nil(err)
+	assert.Equal(correct, ca)
 }
 
 func TestIntegrationMainRegistration(t *testing.T) {
 	assert := assert.New(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	defer cleanup_asset_certs()
 	cmd := exec.CommandContext(ctx, "./mirach")
@@ -117,7 +112,7 @@ func TestIntegrationMainRegistration(t *testing.T) {
 //Attempt to register with customer number 00006913(not it's own)
 func TestIntegrationMainEvilListener(t *testing.T) {
 	load_evil_test_config()
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	defer cleanup_asset_certs()
 	assert := assert.New(t)
@@ -145,4 +140,5 @@ func TestIntegrationMainEvilListener(t *testing.T) {
 	case <-ctx.Done():
 		assert.Equal("context canceled", fmt.Sprint(ctx.Err()))
 	}
+
 }
