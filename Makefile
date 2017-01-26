@@ -49,7 +49,7 @@ all: test $(PROG_TARGETS) archives ## build all systems and architectures
 
 archives: $(ARC_TARGETS) ## archive all builds
 
-clean: clean-build ## clean all
+clean: clean-build clean-mocks ## clean all
 
 clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
