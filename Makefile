@@ -55,7 +55,7 @@ clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
 
 clean-mocks: ## remove mock artifacts
-	rm -r $(GOPATH)/src/cleardata.com/mirach/.mocks
+	rm -rf $(GOPATH)/src/cleardata.com/mirach/.mocks
 
 deploy-docs: docs ## deploy docs to S3 bucket
 	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
@@ -100,4 +100,3 @@ test-integration: ## run integration tests
 
 test-unit:
 	go test -v -tags=unit .
-
