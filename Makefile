@@ -49,10 +49,13 @@ all: test $(PROG_TARGETS) archives ## build all systems and architectures
 
 archives: $(ARC_TARGETS) ## archive all builds
 
-clean: clean-build ## clean all
+clean: clean-build clean-mocks ## clean all
 
 clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
+
+clean-mocks: ## remove mock artifacts
+	rm -rf $(GOPATH)/src/cleardata.com/mirach/.mocks
 
 deploy-docs: docs ## deploy docs to S3 bucket
 	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
@@ -66,6 +69,10 @@ install: ## install to GOPATH
 lint: ## gofmt goimports
 	gofmt *.go
 	-goimport *.go
+
+mqtt-paho-mocks:
+	mkdir .mocks
+	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/cleardata.com/mirach/.mocks/
 
 publish:
 	@echo "push to s3 at some point"
@@ -83,9 +90,13 @@ ifndef RELEASE_REPO
 	$(error RELEASE_REPO is undefined)
 endif
 
-test: ## run unit tests
-	@echo "No unit tests for now, but make test-integration will run integration tests"
+test: test-unit ## run unit tests
+
+test-all: test-unit test-integration
 
 test-integration: ## run integration tests
 	go build -race .
 	go test -v -tags=integration .
+
+test-unit:
+	go test -v -tags=unit .
