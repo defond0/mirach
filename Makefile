@@ -63,8 +63,11 @@ deploy-docs: docs ## deploy docs to S3 bucket
 docs: ## generate docs
 	godoc . > ./docs/html/$(PROJECT_NAME).html
 
-install: ## install to GOPATH
+install: install-go-deps ## install to GOPATH
 	go install -v -ldflags=$(LDFLAGS)
+
+install-go-deps: ## install go dependencies
+	go get ./...
 
 lint: ## gofmt goimports
 	gofmt *.go
@@ -94,9 +97,9 @@ test: test-unit ## run unit tests
 
 test-all: test-unit test-integration
 
-test-integration: ## run integration tests
+test-integration: install-go-deps ## run integration tests
 	go build -race .
 	go test -v -tags=integration .
 
-test-unit:
+test-unit: install-go-deps
 	go test -v -tags=unit .
