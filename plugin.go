@@ -1,4 +1,4 @@
-package main
+package mirach
 
 import (
 	"encoding/json"

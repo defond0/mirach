@@ -1,5 +1,5 @@
 // Mirach is a tool to get information about a machine and send it to a central repository.
-package main
+package mirach
 
 import (
 	"fmt"
@@ -172,7 +172,7 @@ func (s *mirachSession) handleCommands(asset *Asset) {
 
 }
 
-func main() {
+func Start() {
 	//create mirach session struct
 	Mirach = &mirachSession{}
 	//parsecommand
