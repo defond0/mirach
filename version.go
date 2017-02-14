@@ -4,7 +4,7 @@ import "fmt"
 
 var version = "undefined"
 
-// showVersion will print the version information.
-func showVersion() {
+// ShowVersion will print the version information.
+func ShowVersion() {
 	fmt.Println("mirach " + version)
 }
