@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/robfig/cron"
@@ -54,6 +56,14 @@ func getAsset(cust *Customer) *Asset {
 }
 
 func getConfig() string {
+	if runtime.GOOS == "windows" {
+		userConfDir = filepath.Join("%APPDATA%", "mirach")
+		sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
+	} else {
+		userConfDir = "$HOME/.config/mirach"
+		sysConfDir = "/etc/mirach/"
+	}
+	confDirs = append(confDirs, ".", userConfDir, sysConfDir)
 	viper.SetConfigName("config")
 	for _, d := range confDirs {
 		viper.AddConfigPath(d)
