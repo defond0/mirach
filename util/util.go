@@ -10,22 +10,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// customOut either outputs feedback or a log message at error level.
-func customOut(fbMsg, err interface{}) {
-	switch {
-	case Mirach.getVerbosity() > 0:
-		if err != nil {
-			jww.ERROR.Println(fmt.Sprint(err))
-		} else {
-			jww.INFO.Println(fmt.Sprint(fbMsg))
-		}
-	default:
-		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
-	}
-}
-
-// Check if File / Directory Exists
-func exists(path string) (bool, error) {
+// Exists checks if a file or directory exists.
+func Exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil

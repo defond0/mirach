@@ -59,6 +59,18 @@ func (s *mirachSession) getSysConfDir() string {
 
 func (s *mirachSession) getUserConfDir() string {
 	return s.userConfDir
+// CustomOut either outputs feedback or a log message at error level.
+func CustomOut(fbMsg, err interface{}) {
+	switch {
+	case verbosity > 0:
+		if err != nil {
+			jww.ERROR.Println(fmt.Sprint(err))
+		} else {
+			jww.INFO.Println(fmt.Sprint(fbMsg))
+		}
+	default:
+		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
+	}
 }
 
 func (s *mirachSession) getConfigDirs() []string {
@@ -122,7 +134,7 @@ func (s *mirachSession) getCustomer() *Customer {
 	err := cust.Init()
 	if err != nil {
 		msg := "customer initialization failed"
-		customOut(msg, err)
+		CustomOut(msg, err)
 		os.Exit(1)
 	}
 	s.customer = cust
@@ -133,12 +145,14 @@ func (s *mirachSession) getAsset(cust *Customer) *Asset {
 	asset := new(Asset)
 	err := asset.Init(cust)
 	if err != nil {
-		msg := "asset initialization failed"
-		customOut(msg, err)
+		msg := "stopped receiving commands; stopping mirach"
+		CustomOut(msg, err)
 		os.Exit(1)
 	}
 	s.asset = asset
 	return s.asset
+	msg := "mirach entered running state; plugins loaded"
+	CustomOut(msg, nil)
 }
 
 func (s *mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
@@ -153,7 +167,7 @@ func (s *mirachSession) handlePlugins(client mqtt.Client, cron *cron.Cron) {
 		err := cron.AddFunc(v.Schedule, RunPlugin(v, client))
 		if err != nil {
 			msg := "failed to launch plugins"
-			customOut(msg, err)
+			CustomOut(msg, err)
 			os.Exit(1)
 		}
 

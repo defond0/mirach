@@ -155,9 +155,9 @@ func (a *Asset) readCmds() error {
 	go func() {
 		for {
 			msg := <-a.cmdMsg
-			customOut("cmd received: "+msg.Cmd, nil)
+			CustomOut("cmd received: "+msg.Cmd, nil)
 		}
 	}()
-	customOut("command channel open", nil)
+	CustomOut("command channel open", nil)
 	return nil
 }
