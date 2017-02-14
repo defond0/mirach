@@ -2,9 +2,10 @@ package util
 
 import "fmt"
 
-var version = "undefined"
+// Version will be populated at build time and houses the current version.
+var Version = "undefined"
 
 // ShowVersion will print the version information.
 func ShowVersion() {
-	fmt.Println("mirach " + version)
+	fmt.Println("mirach " + Version)
 }
