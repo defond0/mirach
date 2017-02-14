@@ -1,6 +1,6 @@
 // +build unit
 
-package main
+package mirachlib
 
 import (
 	"testing"

@@ -1,6 +1,6 @@
 // +build integration unit
 
-package mirach
+package mirachlib
 
 import (
 	"fmt"

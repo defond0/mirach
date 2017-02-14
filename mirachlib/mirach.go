@@ -1,5 +1,5 @@
-// Mirach is a tool to get information about a machine and send it to a central repository.
-package mirach
+// Package mirachlib provides the main application components of mirach.
+package mirachlib
 
 import (
 	"fmt"
