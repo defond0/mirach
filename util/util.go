@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"fmt"
@@ -36,13 +36,13 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-// findInDirs looks for a filename in configured directories,
+// FindInDirs looks for a filename in configured directories,
 // and returns the first matching file path.
-func findInDirs(fname string, dirs []string) (string, error) {
+func FindInDirs(fname string, dirs []string) (string, error) {
 	jww.INFO.Printf("searching for %s in %s", fname, dirs)
 	for _, d := range dirs {
 		fpath := filepath.Join(d, fname)
-		if b, _ := exists(fpath); b {
+		if b, _ := Exists(fpath); b {
 			return fpath, nil
 		}
 	}
@@ -68,9 +68,9 @@ func ForceWrite(path string, contents string) error {
 	return nil
 }
 
-// getCA returns the certificate authority pem bytes.
-func getCA() ([]byte, error) {
-	caPath, err := findInDirs("ca.pem", Mirach.getConfigDirs())
+// GetCA returns the certificate authority pem bytes.
+func GetCA(dirs []string) ([]byte, error) {
+	caPath, err := FindInDirs("ca.pem", dirs)
 	if err != nil {
 		return nil, err
 	}

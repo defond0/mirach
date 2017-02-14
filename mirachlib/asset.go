@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"cleardata.com/dash/mirach/util"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -47,7 +49,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), Mirach.getConfigDirs())
+		a.privKeyPath, err = util.FindInDirs(filepath.Join("asset", "keys", "private.pem.key"), confDirs)
 		if err != nil {
 			return errors.New("asset private key not found")
 		}
@@ -59,7 +61,7 @@ func (a *Asset) Init(c *Customer) error {
 	if loc := viper.GetString("asset.keys.cert_path"); loc != "" {
 		a.certPath = loc
 	} else {
-		a.certPath, err = findInDirs(filepath.Join("asset", "keys", "ca.pem.crt"), Mirach.getConfigDirs())
+		a.certPath, err = util.FindInDirs(filepath.Join("asset", "keys", "ca.pem.crt"), confDirs)
 		if err != nil {
 			return errors.New("asset cert not found")
 		}
@@ -68,7 +70,7 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	ca, err := getCA()
+	ca, err := util.GetCA(confDirs)
 	if err != nil {
 		return err
 	}
@@ -103,7 +105,6 @@ func (a *Asset) Register(c *Customer) error {
 		}
 		c.regMsg <- res
 	}
-
 	path := fmt.Sprintf("mirach/register/%s/%s", c.id, a.id)
 	pubToken := c.client.Publish(path, 1, false, "")
 	if !pubToken.WaitTimeout(10 * time.Second) {
@@ -112,17 +113,17 @@ func (a *Asset) Register(c *Customer) error {
 	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
 		return subToken.Error()
 	}
-	timeoutCh := Timeout(10 * time.Second)
+	timeoutCh := util.Timeout(10 * time.Second)
 	select {
 	case res := <-c.regMsg:
-		keyPath := filepath.Join(Mirach.getSysConfDir(), "asset", "keys")
-		if err := ForceWrite(filepath.Join(keyPath, "ca.pem.crt"), res.Cert); err != nil {
+		keyPath := filepath.Join(sysConfDir, "asset", "keys")
+		if err := util.ForceWrite(filepath.Join(keyPath, "ca.pem.crt"), res.Cert); err != nil {
 			return err
 		}
-		if err := ForceWrite(filepath.Join(keyPath, "public.pem.key"), res.PubKey); err != nil {
+		if err := util.ForceWrite(filepath.Join(keyPath, "public.pem.key"), res.PubKey); err != nil {
 			return err
 		}
-		if err := ForceWrite(filepath.Join(keyPath, "private.pem.key"), res.PrivKey); err != nil {
+		if err := util.ForceWrite(filepath.Join(keyPath, "private.pem.key"), res.PrivKey); err != nil {
 			return err
 		}
 	case <-timeoutCh:
@@ -138,7 +139,7 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 	if loc := viper.GetString("asset.keys.private_key_path"); loc != "" {
 		a.privKeyPath = loc
 	} else {
-		a.privKeyPath, err = findInDirs(filepath.Join("asset", "keys", "private.pem.key"), Mirach.getConfigDirs())
+		a.privKeyPath, err = util.FindInDirs(filepath.Join("asset", "keys", "private.pem.key"), confDirs)
 		if err != nil {
 			return false
 		}

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"cleardata.com/dash/mirach/util"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -31,7 +32,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.private_key_path"); loc != "" {
 		c.privKeyPath = loc
 	} else {
-		c.privKeyPath, err = findInDirs(filepath.Join("customer", "keys", "private.pem.key"), Mirach.getConfigDirs())
+		c.privKeyPath, err = util.FindInDirs(filepath.Join("customer", "keys", "private.pem.key"), confDirs)
 		if err != nil {
 			return errors.New("customer private key not found")
 		}
@@ -43,7 +44,7 @@ func (c *Customer) Init() error {
 	if loc := viper.GetString("customer.keys.cert_path"); loc != "" {
 		c.certPath = loc
 	} else {
-		c.certPath, err = findInDirs(filepath.Join("customer", "keys", "ca.pem.crt"), Mirach.getConfigDirs())
+		c.certPath, err = util.FindInDirs(filepath.Join("customer", "keys", "ca.pem.crt"), confDirs)
 		if err != nil {
 			return errors.New("customer cert not found")
 		}
@@ -52,7 +53,7 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return err
 	}
-	ca, err := getCA()
+	ca, err := util.GetCA(confDirs)
 	if err != nil {
 		return err
 	}
@@ -72,16 +73,14 @@ func (c *Customer) GetCustomerID() (string, error) {
 	if c.id != "" {
 		return c.id, nil
 	}
-
 	if c.privKey == nil {
 		c.Init()
 	}
-	ca, err := getCA()
+	ca, err := util.GetCA(confDirs)
 	client, err := NewClient(ca, c.privKey, c.cert, "mirach-registration-client")
 	if err != nil {
 		return "", errors.New("registration client connection failed")
 	}
-
 	idMsg := make(chan CustIDMsg, 1)
 	idHandler := func(client mqtt.Client, msg mqtt.Message) {
 		res := CustIDMsg{}
@@ -91,7 +90,6 @@ func (c *Customer) GetCustomerID() (string, error) {
 		}
 		idMsg <- res
 	}
-
 	tempID := uuid.New()
 	path := fmt.Sprintf("mirach/customer_id/%s", tempID)
 	pubToken := client.Publish(path, 1, false, "")
@@ -100,7 +98,7 @@ func (c *Customer) GetCustomerID() (string, error) {
 		fmt.Println(subToken.Error())
 		panic(subToken.Error())
 	}
-	timeoutCh := Timeout(10 * time.Second)
+	timeoutCh := util.Timeout(10 * time.Second)
 	select {
 	case res := <-idMsg:
 		c.id = res.ID
