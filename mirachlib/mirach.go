@@ -25,7 +25,7 @@ var (
 	confDirs    []string
 	sysConfDir  string
 	userConfDir string
-	logLevel    string
+	logLevel    = "error" // default log level
 )
 
 func configureLogging() {
