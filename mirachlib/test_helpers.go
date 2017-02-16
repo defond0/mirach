@@ -7,6 +7,10 @@ import "github.com/spf13/afero"
 var osFs = afero.NewOsFs()
 var testFs = afero.NewMemMapFs()
 
+func resetTestFS() {
+	testFs = afero.NewMemMapFs()
+}
+
 func writeTestCerts() {
 	ca, err := afero.ReadFile(osFs, "../test_resources/ca.pem")
 	if err != nil {
