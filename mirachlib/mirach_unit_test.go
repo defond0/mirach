@@ -17,8 +17,8 @@ func TestConfigureLogging(t *testing.T) {
 	writeTestCerts()
 	writeTestGoodConfig()
 	configureLogging()
-	assert.Equal(logLevel, "error", "log level default error")
-	assert.Equal(jww.StdoutThreshold(), jww.LevelError)
+	assert.Equal("error", logLevel, "log level default error")
+	assert.Equal(jww.LevelError, jww.StdoutThreshold())
 }
 
 func TestGetConfig(t *testing.T) {
