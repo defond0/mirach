@@ -51,15 +51,15 @@ func CustomOut(fbMsg, err interface{}) {
 	}
 }
 
-func getAsset(cust *Customer) *Asset {
+func getAsset(cust *Customer) (*Asset, error) {
 	asset := new(Asset)
 	err := asset.Init(cust)
 	if err != nil {
 		msg := "asset initialization failed"
 		CustomOut(msg, err)
-		os.Exit(1)
+		return nil, err
 	}
-	return asset
+	return asset, nil
 }
 
 func getConfig() string {
@@ -93,15 +93,15 @@ func getConfig() string {
 	return viper.ConfigFileUsed()
 }
 
-func getCustomer() *Customer {
+func getCustomer() (*Customer, error) {
 	cust := new(Customer)
 	err := cust.Init()
 	if err != nil {
 		msg := "customer initialization failed"
 		CustomOut(msg, err)
-		os.Exit(1)
+		return nil, err
 	}
-	return cust
+	return cust, nil
 }
 
 func handleCommands(asset *Asset) {

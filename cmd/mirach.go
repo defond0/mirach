@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"cleardata.com/dash/mirach/mirachlib"
 
 	"github.com/spf13/cobra"
@@ -14,6 +16,9 @@ var MirachCmd = &cobra.Command{
                 about a computer then sending that information to an
                 mqtt broker for consumption.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		mirachlib.Start()
+		if err := mirachlib.Start(); err != nil {
+			mirachlib.CustomOut(nil, err)
+			os.Exit(1)
+		}
 	},
 }
