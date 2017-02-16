@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -54,7 +52,7 @@ func (a *Asset) Init(c *Customer) error {
 			return errors.New("asset private key not found")
 		}
 	}
-	a.privKey, err = ioutil.ReadFile(a.privKeyPath)
+	a.privKey, err = util.ReadFile(a.privKeyPath)
 	if err != nil {
 		return err
 	}
@@ -66,7 +64,7 @@ func (a *Asset) Init(c *Customer) error {
 			return errors.New("asset cert not found")
 		}
 	}
-	a.cert, err = ioutil.ReadFile(a.certPath)
+	a.cert, err = util.ReadFile(a.certPath)
 	if err != nil {
 		return err
 	}
@@ -144,7 +142,7 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 			return false
 		}
 	}
-	if _, err := os.Stat(a.privKeyPath); os.IsNotExist(err) {
+	if exists, _ := util.Exists(a.privKeyPath); !exists {
 		return false
 	}
 	jww.INFO.Println("asset was registered")

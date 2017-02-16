@@ -1,4 +1,8 @@
 // Package mirachlib provides the main application components of mirach.
+//
+// mirachlib is inextricably linked to the util package. If during testing
+// you use any function from the util package that operates with files
+// you will need to use the util.SetFs function to use an in-memory filesystem.
 package mirachlib
 
 import (
@@ -7,6 +11,8 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+
+	"cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/robfig/cron"
@@ -68,6 +74,7 @@ func getConfig() string {
 	for _, d := range confDirs {
 		viper.AddConfigPath(d)
 	}
+	viper.SetFs(util.Fs)
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))

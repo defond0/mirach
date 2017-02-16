@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"time"
 
@@ -37,7 +36,7 @@ func (c *Customer) Init() error {
 			return errors.New("customer private key not found")
 		}
 	}
-	c.privKey, err = ioutil.ReadFile(c.privKeyPath)
+	c.privKey, err = util.ReadFile(c.privKeyPath)
 	if err != nil {
 		return err
 	}
@@ -49,7 +48,7 @@ func (c *Customer) Init() error {
 			return errors.New("customer cert not found")
 		}
 	}
-	c.cert, err = ioutil.ReadFile(c.certPath)
+	c.cert, err = util.ReadFile(c.certPath)
 	if err != nil {
 		return err
 	}

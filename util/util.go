@@ -2,24 +2,20 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/afero"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
-// Exists checks if a file or directory exists.
+// Fs is the afero filesystem used in some util functions.
+// It can be set to another filesystem by calling SetFs, but defaults to afero.OsFs.
+var Fs = afero.NewOsFs()
+
+// Exists is a simple wrapper around afero.Exists.
 func Exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
+	return afero.Exists(Fs, path)
 }
 
 // FindInDirs looks for a filename in configured directories,
@@ -28,7 +24,7 @@ func FindInDirs(fname string, dirs []string) (string, error) {
 	jww.INFO.Printf("searching for %s in %s", fname, dirs)
 	for _, d := range dirs {
 		fpath := filepath.Join(d, fname)
-		if b, _ := Exists(fpath); b {
+		if b, _ := afero.Exists(Fs, fpath); b {
 			return fpath, nil
 		}
 	}
@@ -39,10 +35,10 @@ func FindInDirs(fname string, dirs []string) (string, error) {
 
 // ForceWrite forcibly writes a string to a given filepath.
 func ForceWrite(path string, contents string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := Fs.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	f, err := os.Create(path)
+	f, err := Fs.Create(path)
 	if err != nil {
 		return err
 	}
@@ -60,11 +56,24 @@ func GetCA(dirs []string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ca, err := ioutil.ReadFile(caPath)
+	ca, err := afero.ReadFile(Fs, caPath)
 	if err != nil {
 		return nil, err
 	}
 	return ca, nil
+}
+
+// ReadFile is a simple wrapper around afero.ReadFile.
+// afero.ReadFile is an implementation of the ReadFile interface from ioutil,
+// but operates on the afero filesystem.
+func ReadFile(path string) ([]byte, error) {
+	return afero.ReadFile(Fs, path)
+}
+
+// SetFs sets the afero filesystem.
+// Not setting this will us OsFs by default.
+func SetFs(fs afero.Fs) {
+	Fs = fs
 }
 
 // Timeout starts a go routine which writes true to the given channel
