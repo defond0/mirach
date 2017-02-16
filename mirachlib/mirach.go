@@ -133,14 +133,25 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 	}
 }
 
-// Start begins the application.
-// This function will run indefinitely. It creates and manages the cron scheduler.
-// It also calls for the initialization of clients and signal channels.
-func Start() {
+// PrepResources set up requirements and returns nodes.
+func PrepResources() (*Customer, *Asset, error) {
 	configureLogging()
 	getConfig()
-	cust := getCustomer()
-	asset := getAsset(cust)
+	cust, err := getCustomer()
+	if err != nil {
+		return nil, nil, err
+	}
+	asset, err := getAsset(cust)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cust, asset, nil
+}
+
+// RunLoop begins the long running portions of the application.
+// This function will run indefinitely. It creates and manages the cron scheduler.
+// It also calls for the initialization of clients and signal channels.
+func RunLoop(cust *Customer, asset *Asset) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
 	cron := cron.New()
@@ -152,4 +163,14 @@ func Start() {
 		cron.Stop()
 		os.Exit(1)
 	}
+}
+
+// Start is the main entry for the mirachlib.
+func Start() error {
+	cust, asset, err := PrepResources()
+	if err != nil {
+		return err
+	}
+	RunLoop(cust, asset)
+	return nil
 }
