@@ -17,7 +17,7 @@ func TestConfigureLogging(t *testing.T) {
 	writeTestCerts()
 	writeTestGoodConfig()
 	configureLogging()
-	assert.Equal(verbosity, 0, "verbosity 0")
+	assert.Equal(logLevel, "error", "log level default error")
 	assert.Equal(jww.StdoutThreshold(), jww.LevelError)
 }
 

@@ -25,22 +25,22 @@ var (
 	confDirs    []string
 	sysConfDir  string
 	userConfDir string
-	verbosity   int
+	logLevel    string
 )
 
 func configureLogging() {
-	switch {
-	case verbosity == 1:
+	switch logLevel {
+	case "info":
 		jww.SetStdoutThreshold(jww.LevelInfo)
-	case verbosity > 1:
+	case "trace":
 		jww.SetStdoutThreshold(jww.LevelTrace)
 	}
 }
 
 // CustomOut either outputs feedback or a log message at error level.
 func CustomOut(fbMsg, err interface{}) {
-	switch {
-	case verbosity > 0:
+	switch logLevel {
+	case "info", "trace":
 		if err != nil {
 			jww.ERROR.Println(fmt.Sprint(err))
 		} else {
@@ -163,6 +163,18 @@ func RunLoop(cust *Customer, asset *Asset) {
 		cron.Stop()
 		os.Exit(1)
 	}
+}
+
+// SetLogLevel sets the log level variable.
+func SetLogLevel(level string) error {
+	levels := []string{"error", "info", "trace"}
+	for _, l := range levels {
+		if level == l {
+			logLevel = l
+			return nil
+		}
+	}
+	return fmt.Errorf("choose level from %s", levels)
 }
 
 // Start is the main entry for the mirachlib.
