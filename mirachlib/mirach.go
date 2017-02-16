@@ -15,6 +15,7 @@ import (
 	"cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -62,14 +63,22 @@ func getAsset(cust *Customer) *Asset {
 }
 
 func getConfig() string {
-	if runtime.GOOS == "windows" {
-		userConfDir = filepath.Join("%APPDATA%", "mirach")
-		sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
-	} else {
-		userConfDir = "$HOME/.config/mirach"
-		sysConfDir = "/etc/mirach/"
+	if len(confDirs) == 0 {
+		if runtime.GOOS == "windows" {
+			// TODO: Will probably need to populate these with github.com/luisiturrios/gowin.
+			// Currently gowin is failing to install. Tracking with luisiturrios/gowin#5.
+			userConfDir = filepath.Join("%APPDATA%", "mirach")
+			sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
+		} else {
+			home, err := homedir.Dir()
+			if err != nil {
+				panic(err)
+			}
+			userConfDir = filepath.Join(home, ".config/mirach")
+			sysConfDir = "/etc/mirach/"
+		}
+		confDirs = append(confDirs, ".", userConfDir, sysConfDir)
 	}
-	confDirs = append(confDirs, ".", userConfDir, sysConfDir)
 	viper.SetConfigName("config")
 	for _, d := range confDirs {
 		viper.AddConfigPath(d)
