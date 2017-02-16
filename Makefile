@@ -102,9 +102,8 @@ test-all: test-unit test-integration
 
 test-integration: export GO_BUILD_FLAGS = integration
 test-integration: install-test-deps ## run integration tests
-	go build -race .
-	go test -v -tags '$(GO_BUILD_FLAGS)' .
+	go test -v -tags '$(GO_BUILD_FLAGS)' ./...
 
 test-unit: export GO_BUILD_FLAGS = unit
 test-unit: install-test-deps ## run unit tests
-	go test -v -tags '$(GO_BUILD_FLAGS)' .
+	go test -v -tags '$(GO_BUILD_FLAGS)' ./...

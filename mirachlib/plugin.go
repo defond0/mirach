@@ -1,4 +1,4 @@
-package main
+package mirachlib
 
 import (
 	"encoding/json"
@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Plugin is a regularly run command that collects data.
 type Plugin struct {
 	Label    string `json:"label"`
 	Cmd      string `json:"cmd"`

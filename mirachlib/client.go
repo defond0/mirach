@@ -1,4 +1,4 @@
-package main
+package mirachlib
 
 import (
 	"crypto/tls"

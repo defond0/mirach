@@ -1,10 +1,2 @@
 asset:
   id: "00000666-mirach"
-plugins:
-  pkg_compliance:
-    cmd: pkg_compliance
-    schedule: "@hourly"
-    url: "http://example.com/plugins/pkg_compliance"
-  computer_info:
-    cmd: computer_info
-    schedule: "@every 1m"
