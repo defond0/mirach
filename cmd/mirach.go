@@ -35,9 +35,9 @@ var MirachCmd = &cobra.Command{
 }
 
 func init() {
-	MirachCmd.AddCommand(pluginCmd)
+	MirachCmd.AddCommand(compinfoCmd)
 	MirachCmd.PersistentFlags().StringVarP(&Level, "loglevel", "l", "error",
 		"log level: error (default), info, trace")
-	pluginCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "system",
-		"compinfo group to check: docker, load, system (default)")
+	compinfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "system",
+		"compinfo group to check: docker, load, system")
 }
