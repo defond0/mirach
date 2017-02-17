@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"cleardata.com/dash/mirach/plugins/compinfo"
 	"cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -116,19 +117,59 @@ func handleCommands(asset *Asset) {
 }
 
 func handlePlugins(client mqtt.Client, cron *cron.Cron) {
-	plugins := make(map[string]Plugin)
-	err := viper.UnmarshalKey("plugins", &plugins)
+	externalPlugins := make(map[string]ExternalPlugin)
+	err := viper.UnmarshalKey("plugins", &externalPlugins)
 	if err != nil {
 		jww.ERROR.Println(err)
 	}
+	internalPlugins := []InternalPlugin{
+		{
+			Label:    "compinfo-docker",
+			Schedule: "@hourly",
+			StrFunc:  compinfo.GetDockerString,
+			Type:     "compinfo",
+		},
+		{
+			Label:    "compinfo-load",
+			Schedule: "@every 5m",
+			StrFunc:  compinfo.GetLoadString,
+			Type:     "compinfo",
+		},
+		{
+			Label:    "compinfo-sys",
+			Schedule: "@daily",
+			StrFunc:  compinfo.GetSysString,
+			Type:     "compinfo",
+		},
+	}
 	cron.Start()
-	for k, v := range plugins {
-		jww.INFO.Printf("Adding to plugin: %s", k)
-		err := cron.AddFunc(v.Schedule, RunPlugin(v, client))
+	for k, v := range externalPlugins {
+		// Loop over internal plugins to check name collisions.
+		ok := true
+		for _, p := range internalPlugins {
+			if v.Label == p.Label || v.Label == p.Type {
+				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
+				CustomOut(nil, err)
+				ok = false
+				break
+			}
+		}
+		if !ok {
+			continue
+		}
+		jww.INFO.Printf("adding plugin to cron: %s", k)
+		err := cron.AddFunc(v.Schedule, v.Run(client))
 		if err != nil {
-			msg := "failed to launch plugins"
+			msg := fmt.Sprintf("failed to load plugin %v", k)
 			CustomOut(msg, err)
-			os.Exit(1)
+		}
+	}
+	for _, v := range internalPlugins {
+		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
+		err := cron.AddFunc(v.Schedule, v.Run(client))
+		if err != nil {
+			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
+			CustomOut(msg, err)
 		}
 	}
 }
