@@ -25,7 +25,7 @@ import (
 // InfoGroup is an interface for getting data and marshaling to json.
 type InfoGroup interface {
 	GetInfo()
-	String()
+	String() string
 }
 
 // Docker contains information about Docker containers.
