@@ -55,7 +55,7 @@ func TestDockerString(t *testing.T) {
 	if err := json.Unmarshal([]byte(mockD.String()), &newD); err != nil {
 		t.Error("not able to unmarshal into Docker")
 	}
-	if !(newD.IDs[0] == "hash1" && newD.IDs[1] == "hash2") {
+	if !(ogD.IDs[0] == newD.IDs[0] && ogD.IDs[1] == newD.IDs[1]) {
 		t.Error("container IDs do not match")
 	}
 	if !(!newD.Stat[0].Running && newD.Stat[1].Running) {
@@ -85,10 +85,10 @@ func TestLoadString(t *testing.T) {
 	if err := json.Unmarshal([]byte(mockL.String()), &newL); err != nil {
 		t.Error("not able to unmarshal into Load")
 	}
-	if newL.Avg.Load5 != 0.5 {
+	if ogL.Avg.Load5 != newL.Avg.Load5 {
 		t.Error("Load5 does not match")
 	}
-	if newL.Misc.ProcsBlocked != 1 {
+	if ogL.Misc.ProcsBlocked != newL.Misc.ProcsBlocked {
 		t.Error("ProcsBlocked does not match")
 	}
 }
@@ -148,10 +148,10 @@ func TestSysString(t *testing.T) {
 	if err := json.Unmarshal([]byte(mockS.String()), &newS); err != nil {
 		t.Error("not able to unmarshal into Sys")
 	}
-	if newS.Host.HostID != "someHostHash" {
+	if ogS.Host.HostID != newS.Host.HostID {
 		t.Error("HostID does not match")
 	}
-	if !(newS.CPUs[0].Cores == 1 && newS.CPUs[1].Flags[1] == "go") {
+	if !(ogS.CPUs[0].Cores == newS.CPUs[0].Cores && ogS.CPUs[1].Flags[1] == newS.CPUs[1].Flags[1]) {
 		t.Error("CPU data does not match")
 	}
 }
