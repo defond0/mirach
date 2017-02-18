@@ -36,8 +36,11 @@ var MirachCmd = &cobra.Command{
 
 func init() {
 	MirachCmd.AddCommand(compinfoCmd)
+	MirachCmd.AddCommand(pkginfoCmd)
 	MirachCmd.PersistentFlags().StringVarP(&Level, "loglevel", "l", "error",
 		"log level: error (default), info, trace")
 	compinfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "system",
 		"compinfo group to check: docker, load, system")
+	pkginfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "avail_sec",
+		"pkginfo group to check: available, available_security, installed")
 }
