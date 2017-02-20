@@ -28,10 +28,10 @@ func GetYumPkgs() (map[string][]LinuxPackage, []error) {
 }
 
 func getYumInstalledPackages() ([]LinuxPackage, error) {
-	aptget := command("yum list installed -q")
+	yum := command("yum list installed -q")
 	grep := exec.Command("grep", "-v", "Installed Packages")
 	awk := exec.Command("awk", "{{ print $1 , $2 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	stdout, stderr, err := pipeline(yum, grep, awk)
 	if err != nil {
 		fmt.Println(string(stderr))
 		return nil, err
@@ -40,10 +40,10 @@ func getYumInstalledPackages() ([]LinuxPackage, error) {
 }
 
 func getYumAvailablePackages() ([]LinuxPackage, error) {
-	aptget := command("yum list updates -q")
+	yum := command("yum list updates -q")
 	grep := exec.Command("grep", "-v", "Updated Packages")
 	awk := exec.Command("awk", "{{ print $1 , $2 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	stdout, stderr, err := pipeline(yum, grep, awk)
 	if err != nil {
 		fmt.Println(stderr)
 		return nil, err
@@ -52,10 +52,10 @@ func getYumAvailablePackages() ([]LinuxPackage, error) {
 }
 
 func getYumAvailableSecurityPackages() ([]LinuxPackage, error) {
-	aptget := command("yum list updates -q --security")
+	yum := command("yum list updates -q --security")
 	grep := exec.Command("grep", "-v", "Updated Packages")
 	awk := exec.Command("awk", "{{ print $1 , $2 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	stdout, stderr, err := pipeline(yum, grep, awk)
 	if err != nil {
 		fmt.Println(string(stderr))
 		return nil, err
