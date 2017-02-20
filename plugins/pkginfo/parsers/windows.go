@@ -28,15 +28,13 @@ func GetWindowsKBs() (map[string][]KBArticle, []error) {
 }
 
 func getWindowsInstalledKBs() ([]KBArticle, error) {
-	aptget := command("yum list installed -q")
-	grep := exec.Command("grep", "-v", "Installed KBs")
-	awk := exec.Command("awk", "{{ print $1 , $2 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	wmicList := command("wmic qfe list")
+	stdout, stderr, err := pipeline(wmicList)
 	if err != nil {
 		fmt.Println(string(stderr))
 		return nil, err
 	}
-	return parseArticlesFromBytes(stdout, false)
+	return parseArticlesFromBytes(stdout)
 }
 
 func getYumAvailableKBs() ([]KBArticle, error) {
@@ -48,7 +46,7 @@ func getYumAvailableKBs() ([]KBArticle, error) {
 		fmt.Println(stderr)
 		return nil, err
 	}
-	return parseArticlesFromBytes(stdout, false)
+	return parseArticlesFromBytes(stdout)
 }
 
 func getYumAvailableSecurityKBs() ([]KBArticle, error) {
@@ -60,5 +58,5 @@ func getYumAvailableSecurityKBs() ([]KBArticle, error) {
 		fmt.Println(string(stderr))
 		return nil, err
 	}
-	return parseArticlesFromBytes(stdout, true)
+	return parseArticlesFromBytes(stdout)
 }
