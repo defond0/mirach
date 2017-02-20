@@ -2,6 +2,7 @@ package pkginfo
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"cleardata.com/dash/mirach/plugins/pkginfo/parsers"
 	"github.com/shirou/gopsutil/host"
@@ -91,6 +92,7 @@ func String() string {
 
 func GetInfoGroup(infoGroup string) string {
 	os := getOs()
+	fmt.Printf("os_family: %s \n", os)
 	if os == "windows" {
 		kb := new(KBStatus)
 		return kb.GetInfoGroup(infoGroup)
@@ -107,5 +109,9 @@ func getOs() string {
 	if err != nil {
 		panic(err)
 	}
-	return host.PlatformFamily
+	if host.OS != "windows" {
+		return host.PlatformFamily
+	} else {
+		return host.OS
+	}
 }
