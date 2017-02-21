@@ -109,19 +109,18 @@ func parsePacakgesFromBytes(b []byte, security bool) ([]LinuxPackage, error) {
 func parseArticlesFromBytes(b []byte) ([]KBArticle, error) {
 	art := []KBArticle{}
 	security, _ := regexp.Compile("(?i)security")
+	name, _ := regexp.Compile("KB(.*?)\\s")
 	lines := strings.Split(string(b), "\n")
 	for _, line := range lines {
-		row := strings.Split(line, "  ")
-		fmt.Println(row)
-		fmt.Println(len(row))
-		fmt.Println(len(line))
-		if len(row) > 1 {
+		row := strings.SplitN(line, "  ", 4)
+		if len(row) > 1 && name.MatchString(row[3]) {
+			fmt.Println(row)
 			for k, v := range row {
 				fmt.Printf("%d %s \n", k, v)
 			}
 			art = append(art,
 				KBArticle{
-					Name:     strings.Trim(row[9], " "),
+					Name:     name.FindString(row[3]),
 					Security: security.MatchString(row[2]),
 				},
 			)
