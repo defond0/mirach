@@ -29,9 +29,6 @@ help:
 SYSTEMS := linux windows
 ARCHS := 386 amd64
 
-# $(BINDIR)/$(PROJECT_NAME)_$(1)_$(2)/$(PROJECT_NAME): export EXT = $(if $(filter windows,$(2)),.exe)
-# $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe): export GOOS = $(1)
-
 define PROGRAM_template
 CUR = $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
 PROG_TARGETS += $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
