@@ -3,9 +3,9 @@ package parsers
 import (
 	"fmt"
 	"os/exec"
-	"reflect"
 
 	ole "github.com/go-ole/go-ole"
+	oleutil "github.com/go-ole/go-ole/oleutil"
 )
 
 // S_FALSE is returned by CoInitializeEx if it was already called on this thread.
@@ -46,9 +46,11 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 
 func getWindowsAvailableKBs() ([]KBArticle, error) {
 	art := []KBArticle{}
+	fmt.Println("about to coinit")
 	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
 	defer ole.CoUninitialize()
 	if err != nil {
+		fmt.Println("coinit err")
 		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(err)
 		fmt.Println(oleCode)
@@ -56,13 +58,11 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 			return nil, err
 		}
 	}
-	session, err := ole.GetActiveObject("Microsoft.Update.Session")
-	defer session.Release()
-	fmt.Println("session")
-	fmt.Println(session)
-	fmt.Println(reflect.TypeOf(session))
+	fmt.Println("conit seems to have worked")
+	fmt.Println("Microsoft.Update.Session lets try and do that")
+	classId, err := oleutil.ClassIDFrom("Microsoft.Update.Session")
 	if err != nil {
-		fmt.Println("err")
+		fmt.Println("classid err")
 		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(err)
 		fmt.Println(oleCode)
@@ -70,35 +70,99 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 			return nil, err
 		}
 	}
-	update, err := session.QueryInterface(ole.IID_IDispatch)
-	defer update.Release()
-	fmt.Println("update")
-	fmt.Println(update)
-	fmt.Println(reflect.TypeOf(update))
-	// temp, err := update.CallMethod("CreateupdateSearcher")
-	// if err != nil {
-	// 	fmt.Println("err")
-	// 	oleCode := err.(*ole.OleError).Code()
-	// 	fmt.Println(err)
-	// 	fmt.Println(oleCode)
-	// 	if oleCode != ole.S_OK && oleCode != S_FALSE {
-	// 		return nil, err
-	// 	}
-	// }
-	// search := temp.ToIDispatch()
-	// defer search.Release()
-	// fmt.Println("search")
-	// fmt.Println(search)
-	// fmt.Println(search.GetTypeInfoCount())
-	// res, err := search.CallMethod("Search", "IsInstalled=0")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println("res")
-	// fmt.Println(res)
-	// resdis := res.ToIDispatch()
-	// fmt.Println(resdis.GetTypeInfo())
-	// fmt.Println(resdis.GetTypeInfoCount())
+	session, err := ole.CreateInstance(classId, ole.IID_IUnknown)
+	if err != nil {
+		fmt.Println("Microsoft.Update.Session err")
+		oleCode := err.(*ole.OleError).Code()
+		fmt.Println(err)
+		fmt.Println(oleCode)
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			return nil, err
+		}
+	}
+	defer session.Release()
+	dispatch := session.MustQueryInterface(ole.IID_IDispatch)
+	defer dispatch.Release()
+	fmt.Println("Microsoft.Update.Session seems to have worked with: ")
+	fmt.Println(classId)
+	fmt.Println(session)
+	fmt.Println(dispatch)
+	fmt.Println("updateSession.CreateUpdateSearcher lets try and do that")
+	updateSearcher, err := dispatch.CallMethod("CreateUpdateSearcher")
+	if err != nil {
+		fmt.Println("CreateUpdateSearcher err")
+		fmt.Println(err)
+		oleCode := err.(*ole.OleError).Code()
+		fmt.Println(oleCode)
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			return nil, err
+		}
+	}
+	defer updateSearcher.Clear()
+	fmt.Println("updateSession.CreateUpdateSearcher seemed to work with:")
+	fmt.Println(updateSearcher)
+	fmt.Println("UpdateSearcher.Search IsInstalled=0 lets try and do that")
+	res, err := updateSearcher.ToIDispatch().CallMethod("Search", "IsInstalled=0")
+	defer res.Clear()
+	if err != nil {
+		fmt.Println("UpdateSearcher.Seartch IsInstalled=0 err")
+		panic(err)
+	}
+	fmt.Println(res)
+	Updates, err := res.ToIDispatch().GetProperty("Updates")
+	defer Updates.Clear()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	listy, err := Updates.ToIDispatch().GetProperty("_NewEnum")
+	defer listy.Clear()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	enum, err := listy.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
+	defer enum.Release()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	for tmp, length, err := enum.Next(1); length > 0; tmp, length, err = enum.Next(1) {
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		defer tmp.Clear()
+		tmp_dispatch := tmp.ToIDispatch()
+		defer tmp_dispatch.Release()
+		type_, err := tmp_dispatch.GetProperty("Title")
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		ids, err := tmp.ToIDispatch().GetProperty("KBArticleIDs")
+		kbs, err := ids.ToIDispatch().GetProperty("_NewEnum")
+		defer kbs.Clear()
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		kbs_enum, err := kbs.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
+		defer kbs_enum.Release()
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		for kb, length, err := kbs_enum.Next(1); length > 0; tmp, length, err = kbs_enum.Next(1) {
+			if err != nil {
+				fmt.Println(err)
+				panic(err)
+			}
+			fmt.Println(kb.Value())
+		}
+		fmt.Println("Update")
+		fmt.Println(type_.Value())
+	}
 	return art, nil
 }
 
