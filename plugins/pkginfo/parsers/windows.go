@@ -142,21 +142,21 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		// T, err := update_dispatch.GetProperty("Title")
-		// t, err := update_dispatch.GetProperty("Type")
 		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
 		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
-			kbId = fmt.Sprintf("KB%s", kb.Value())
-		}
-		security := sev.Value() == "Critical"
-		fmt.Printf("%s %s \n", kbId, sev.Value())
-		art = append(art,
-			KBArticle{
-				Name:     kbId,
-				Security: security,
-			},
-		)
+			defer kb.Clear()
+			newKbId := fmt.Sprintf("KB%s", kb.Value())
+			if newKbId != kbId {
+				kbId = newKbId
+				security := sev.Value() == "Critical"
+				art = append(art, KBArticle{
+					Name:     kbId,
+					Security: security,
+				},
+				)
+			}
 
+		}
 	}
 	return art, nil
 }
@@ -164,7 +164,7 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 func getWindowsAvailableKBs() ([]KBArticle, error) {
 	art := []KBArticle{}
 	coInit()
-	updates := searchUpdates("IsInstalled=0")
+	updates := searchUpdates("IsInstalled=0 AND IsPresent=0")
 	defer updates.Release()
 	var kbId string
 	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
@@ -183,53 +183,35 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 		}
 		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
 		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
-			kbId = fmt.Sprintf("KB%s", kb.Value())
+			newKbId := fmt.Sprintf("KB%s", kb.Value())
+			if newKbId != kbId {
+				kbId = newKbId
+				security := sev.Value() == "Critical"
+				art = append(art, KBArticle{
+					Name:     kbId,
+					Security: security,
+				},
+				)
+			}
+
 		}
-		security := sev.Value() == "Critical"
-		art = append(art,
-			KBArticle{
-				Name:     kbId,
-				Security: security,
-			},
-		)
+
 	}
 	return art, nil
 }
 
 func getWindowsAvailableSecurityKBs() ([]KBArticle, error) {
-	art := []KBArticle{}
-	coInit()
-	updates := searchUpdates("IsInstalled=0")
-	defer updates.Release()
-	var kbId string
-	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
-		}
-		defer update.Clear()
-		update_dispatch := update.ToIDispatch()
-		defer update_dispatch.Release()
-		sev, err := update_dispatch.GetProperty("MsrcSeverity")
-		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
-		if err != nil {
-			fmt.Println("prop error")
-			fmt.Println(err)
-		}
-		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
-		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
-			kbId = fmt.Sprintf("KB%s", kb.Value())
-		}
-		security := sev.Value() == "Critical"
-		if security == true {
-			art = append(art,
-				KBArticle{
-					Name:     kbId,
-					Security: security,
-				},
-			)
-		}
-
+	art, err := getWindowsAvailableKBs()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
 	}
-	return art, nil
+
+	artSec := []KBArticle{}
+	for _, v := range art {
+		if v.Security {
+			artSec = append(artSec, v)
+		}
+	}
+	return artSec, nil
 }
