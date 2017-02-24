@@ -104,24 +104,3 @@ func parsePacakgesFromBytes(b []byte, security bool) ([]LinuxPackage, error) {
 	}
 	return pkgs, nil
 }
-
-//Expects []bytes representing lines of description hotfixid
-func parseArticlesFromBytes(b []byte) ([]KBArticle, error) {
-	art := []KBArticle{}
-	security, _ := regexp.Compile("(?i)security")
-	name, _ := regexp.Compile("KB([^\\s])*")
-	lines := strings.Split(string(b), "\n")
-	for _, line := range lines {
-		row := strings.SplitN(line, "  ", 2)
-		if len(row) > 1 && name.MatchString(row[1]) {
-			art = append(art,
-				KBArticle{
-					Name:     name.FindString(row[1]),
-					Security: security.MatchString(row[0]),
-				},
-			)
-
-		}
-	}
-	return art, nil
-}
