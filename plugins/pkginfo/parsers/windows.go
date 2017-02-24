@@ -2,7 +2,6 @@ package parsers
 
 import (
 	"fmt"
-	"os/exec"
 
 	ole "github.com/go-ole/go-ole"
 	oleutil "github.com/go-ole/go-ole/oleutil"
@@ -34,146 +33,203 @@ func GetWindowsKBs() (map[string][]KBArticle, []error) {
 	return out, errors
 }
 
-func getWindowsInstalledKBs() ([]KBArticle, error) {
-	wmicList := command("wmic path win32_quickfixengineering get HotFixId, Description")
-	stdout, stderr, err := pipeline(wmicList)
-	if err != nil {
-		fmt.Println(string(stderr))
-		return nil, err
-	}
-	return parseArticlesFromBytes(stdout)
-}
-
-func getWindowsAvailableKBs() ([]KBArticle, error) {
-	art := []KBArticle{}
-	fmt.Println("about to coinit")
+func coInit() error {
 	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
-	defer ole.CoUninitialize()
 	if err != nil {
-		fmt.Println("coinit err")
 		oleCode := err.(*ole.OleError).Code()
-		fmt.Println(err)
-		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			return nil, err
+			fmt.Println(err)
+			return err
 		}
 	}
-	fmt.Println("conit seems to have worked")
-	fmt.Println("Microsoft.Update.Session lets try and do that")
+	return nil
+}
+
+//seek the bludger or else QUIDITCH (that's numberwhang)!!!
+func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	classId, err := oleutil.ClassIDFrom("Microsoft.Update.Session")
 	if err != nil {
-		fmt.Println("classid err")
 		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(err)
 		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			return nil, err
+			return &ole.IDispatch{}, err
 		}
 	}
 	session, err := ole.CreateInstance(classId, ole.IID_IUnknown)
 	if err != nil {
-		fmt.Println("Microsoft.Update.Session err")
 		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(err)
 		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			return nil, err
+			return &ole.IDispatch{}, err
 		}
 	}
-	defer session.Release()
 	dispatch := session.MustQueryInterface(ole.IID_IDispatch)
-	defer dispatch.Release()
-	fmt.Println("Microsoft.Update.Session seems to have worked with: ")
-	fmt.Println(classId)
-	fmt.Println(session)
-	fmt.Println(dispatch)
-	fmt.Println("updateSession.CreateUpdateSearcher lets try and do that")
-	updateSearcher, err := dispatch.CallMethod("CreateUpdateSearcher")
+	updateSearcherVar, err := dispatch.CallMethod("CreateUpdateSearcher")
 	if err != nil {
-		fmt.Println("CreateUpdateSearcher err")
 		fmt.Println(err)
 		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			return nil, err
+			return &ole.IDispatch{}, err
 		}
 	}
-	defer updateSearcher.Clear()
-	fmt.Println("updateSession.CreateUpdateSearcher seemed to work with:")
-	fmt.Println(updateSearcher)
-	fmt.Println("UpdateSearcher.Search IsInstalled=0 lets try and do that")
-	res, err := updateSearcher.ToIDispatch().CallMethod("Search", "IsInstalled=0")
-	defer res.Clear()
+	updateSearcher := updateSearcherVar.ToIDispatch()
+	return updateSearcher, nil
+
+}
+
+func searchUpdates(query string) *ole.IEnumVARIANT {
+	updateSearcher, err := getWindowsUpdateSearcher()
+	defer updateSearcher.Release()
 	if err != nil {
-		fmt.Println("UpdateSearcher.Seartch IsInstalled=0 err")
+		fmt.Println("err getting update searcher")
 		panic(err)
 	}
-	fmt.Println(res)
-	Updates, err := res.ToIDispatch().GetProperty("Updates")
-	defer Updates.Clear()
+	res, err := updateSearcher.CallMethod("Search", query)
 	if err != nil {
+		fmt.Println("UpdateSearcher.Search err")
+		oleCode := err.(*ole.OleError).Code()
 		fmt.Println(err)
+		fmt.Println(oleCode)
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			panic(err)
+		}
 		panic(err)
 	}
-	listy, err := Updates.ToIDispatch().GetProperty("_NewEnum")
-	defer listy.Clear()
+	Updates, err := res.ToIDispatch().GetProperty("Updates")
+	if err != nil {
+		fmt.Println("err getting update searcher")
+		panic(err)
+	}
+	return getEnumFromDispatch(Updates.ToIDispatch())
+}
+
+func getEnumFromDispatch(dis *ole.IDispatch) *ole.IEnumVARIANT {
+	listy, err := dis.GetProperty("_NewEnum")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
 	enum, err := listy.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
-	defer enum.Release()
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	for tmp, length, err := enum.Next(1); length > 0; tmp, length, err = enum.Next(1) {
+	return enum
+}
+
+func getWindowsInstalledKBs() ([]KBArticle, error) {
+	art := []KBArticle{}
+	err := coInit()
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	updates := searchUpdates("IsPresent=1 AND IsInstalled=1")
+	defer updates.Release()
+	var kbId string
+	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
+		if err != nil {
+			fmt.Println(err)
+		}
+		defer update.Clear()
+		update_dispatch := update.ToIDispatch()
+		defer update_dispatch.Release()
+		sev, err := update_dispatch.GetProperty("MsrcSeverity")
+		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
+		if err != nil {
+			fmt.Println(err)
+		}
+		// T, err := update_dispatch.GetProperty("Title")
+		// t, err := update_dispatch.GetProperty("Type")
+		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
+		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
+			kbId = fmt.Sprintf("KB%s", kb.Value())
+		}
+		security := sev.Value() == "Critical"
+		fmt.Printf("%s %s \n", kbId, sev.Value())
+		art = append(art,
+			KBArticle{
+				Name:     kbId,
+				Security: security,
+			},
+		)
+
+	}
+	return art, nil
+}
+
+func getWindowsAvailableKBs() ([]KBArticle, error) {
+	art := []KBArticle{}
+	coInit()
+	updates := searchUpdates("IsInstalled=0")
+	defer updates.Release()
+	var kbId string
+	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
 		if err != nil {
 			fmt.Println(err)
 			panic(err)
 		}
-		defer tmp.Clear()
-		tmp_dispatch := tmp.ToIDispatch()
-		defer tmp_dispatch.Release()
-		type_, err := tmp_dispatch.GetProperty("Title")
+		defer update.Clear()
+		update_dispatch := update.ToIDispatch()
+		defer update_dispatch.Release()
+		sev, err := update_dispatch.GetProperty("MsrcSeverity")
+		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
 		if err != nil {
+			fmt.Println("prop error")
 			fmt.Println(err)
-			panic(err)
 		}
-		ids, err := tmp.ToIDispatch().GetProperty("KBArticleIDs")
-		kbs, err := ids.ToIDispatch().GetProperty("_NewEnum")
-		defer kbs.Clear()
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
+		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
+		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
+			kbId = fmt.Sprintf("KB%s", kb.Value())
 		}
-		kbs_enum, err := kbs.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
-		defer kbs_enum.Release()
-		if err != nil {
-			fmt.Println(err)
-			panic(err)
-		}
-		for kb, length, err := kbs_enum.Next(1); length > 0; tmp, length, err = kbs_enum.Next(1) {
-			if err != nil {
-				fmt.Println(err)
-				panic(err)
-			}
-			fmt.Println(kb.Value())
-		}
-		fmt.Println("Update")
-		fmt.Println(type_.Value())
+		security := sev.Value() == "Critical"
+		art = append(art,
+			KBArticle{
+				Name:     kbId,
+				Security: security,
+			},
+		)
 	}
 	return art, nil
 }
 
 func getWindowsAvailableSecurityKBs() ([]KBArticle, error) {
-	aptget := command("yum list updates -q --security")
-	grep := exec.Command("grep", "-v", "Updated KBs")
-	awk := exec.Command("awk", "{{ print $1 , $2 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
-	if err != nil {
-		fmt.Println(string(stderr))
-		return nil, err
+	art := []KBArticle{}
+	coInit()
+	updates := searchUpdates("IsInstalled=0")
+	defer updates.Release()
+	var kbId string
+	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
+		if err != nil {
+			fmt.Println(err)
+			panic(err)
+		}
+		defer update.Clear()
+		update_dispatch := update.ToIDispatch()
+		defer update_dispatch.Release()
+		sev, err := update_dispatch.GetProperty("MsrcSeverity")
+		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
+		if err != nil {
+			fmt.Println("prop error")
+			fmt.Println(err)
+		}
+		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
+		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
+			kbId = fmt.Sprintf("KB%s", kb.Value())
+		}
+		security := sev.Value() == "Critical"
+		if security == true {
+			art = append(art,
+				KBArticle{
+					Name:     kbId,
+					Security: security,
+				},
+			)
+		}
+
 	}
-	return parseArticlesFromBytes(stdout)
+	return art, nil
 }
