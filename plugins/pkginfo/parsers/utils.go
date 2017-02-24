@@ -2,8 +2,6 @@ package parsers
 
 import (
 	"bytes"
-	"fmt"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -50,39 +48,6 @@ func pipeline(cmds ...*exec.Cmd) (pipeLineOutput, collectedStandardError []byte,
 	}
 	// Return the pipeline output and the collected standard error
 	return output.Bytes(), stderr.Bytes(), nil
-}
-
-func getAptitudeSecurityList() {
-	cmd := command("grep security /etc/apt/sources.list")
-	outfile, err := os.Create("/tmp/security.list")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer outfile.Close()
-	cmd.Stdout = outfile
-
-	err = cmd.Start()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func cleanUpSecurityList() {
-	cmd := command("rm /tmp/security.list")
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-	}
 }
 
 //Expects []bytes representing lines of pkgname version

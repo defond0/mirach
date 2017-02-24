@@ -2,6 +2,7 @@ package parsers
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -64,4 +65,37 @@ func getAptAvailableSecurityPackages() ([]LinuxPackage, error) {
 		return nil, err
 	}
 	return parsePacakgesFromBytes(stdout, true)
+}
+
+func getAptitudeSecurityList() {
+	cmd := command("grep security /etc/apt/sources.list")
+	outfile, err := os.Create("/tmp/security.list")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer outfile.Close()
+	cmd.Stdout = outfile
+
+	err = cmd.Start()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func cleanUpSecurityList() {
+	cmd := command("rm /tmp/security.list")
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println(err)
+	}
 }
