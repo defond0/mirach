@@ -2,7 +2,6 @@ package pkginfo
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"cleardata.com/dash/mirach/plugins/pkginfo/parsers"
 	"github.com/shirou/gopsutil/host"
@@ -35,14 +34,12 @@ func (p *PkgStatus) GetInfo() {
 }
 
 func (p *PkgStatus) String() string {
-	p.GetInfo()
 	s, _ := json.Marshal(p)
 	return string(s)
 }
 
 func (p *PkgStatus) GetInfoGroup(infoGroup string) string {
-	p.GetInfo()
-	s, _ := json.Marshal(p.Packages[infoGroup])
+	s, _ := json.MarshalIndent(p.Packages[infoGroup], "", "  ")
 	return string(s)
 }
 
@@ -52,13 +49,11 @@ func (k *KBStatus) GetInfo() {
 }
 
 func (k *KBStatus) GetInfoGroup(infoGroup string) string {
-	k.GetInfo()
-	s, _ := json.Marshal(k.Articles[infoGroup])
+	s, _ := json.MarshalIndent(k.Articles[infoGroup], "", "  ")
 	return string(s)
 }
 func (k *KBStatus) String() string {
-	k.GetInfo()
-	s, _ := json.Marshal(k)
+	s, _ := json.MarshalIndent(k, "", "  ")
 	return string(s)
 }
 
@@ -80,11 +75,13 @@ func String() string {
 	os := getOs()
 	if os == "windows" {
 		kb := new(KBStatus)
+		kb.GetInfo()
 		return kb.String()
 
 	} else {
 		pkg := new(PkgStatus)
 		pkg.Os = os
+		pkg.GetInfo()
 		return pkg.String()
 	}
 
@@ -92,7 +89,6 @@ func String() string {
 
 func GetInfoGroup(infoGroup string) string {
 	os := getOs()
-	fmt.Printf("os_family: %s \n", os)
 	if os == "windows" {
 		kb := new(KBStatus)
 		return kb.GetInfoGroup(infoGroup)
