@@ -13,6 +13,7 @@ const S_FALSE = 0x00000001
 
 //grep returns exit status 1 when it gets no match, errors like that are fine
 func GetWindowsKBs() (map[string][]KBArticle, []error) {
+	queryHistory()
 	errors := []error{}
 	out := make(map[string][]KBArticle)
 	avail, err := getWindowsAvailableKBs()
@@ -175,6 +176,52 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	updateSearcher := updateSearcherVar.ToIDispatch()
 	return updateSearcher, nil
 
+}
+
+func queryHistory() {
+	coInit()
+	updateSearcher, err := getWindowsUpdateSearcher()
+	defer updateSearcher.Release()
+	if err != nil {
+		fmt.Println("err getting hist")
+		panic(err)
+	}
+	res, err := updateSearcher.CallMethod("GetTotalHistoryCount")
+	if err != nil {
+		fmt.Println("history count err")
+		oleCode := err.(*ole.OleError).Code()
+		fmt.Println(err)
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			panic(err)
+		}
+	}
+	historyCount := res.Value()
+	res, err = updateSearcher.CallMethod("QueryHistory", 1, historyCount)
+	if err != nil {
+		fmt.Println("history query err")
+		oleCode := err.(*ole.OleError).Code()
+		fmt.Println(err)
+		if oleCode != ole.S_OK && oleCode != S_FALSE {
+			panic(err)
+		}
+	}
+	hist := getEnumFromDispatch(res.ToIDispatch())
+	for ent, length, _ := hist.Next(1); length > 0; ent, length, err = hist.Next(1) {
+		ent_dispatch := ent.ToIDispatch()
+		defer ent_dispatch.Release()
+		title, _ := ent_dispatch.GetProperty("Title")
+		desc, _ := ent_dispatch.GetProperty("Description")
+		servid, _ := ent_dispatch.GetProperty("ServiceID")
+		update, _ := ent_dispatch.GetProperty("UpdateIdentity")
+		id, _ := update.ToIDispatch().GetProperty("UpdateID")
+		if fmt.Sprint(servid) != "" {
+			fmt.Println("--------------------------")
+			fmt.Println(title.Value())
+			fmt.Println(desc.Value())
+			fmt.Println(servid.Value())
+			fmt.Println(id.Value())
+		}
+	}
 }
 
 func searchUpdates(query string) *ole.IEnumVARIANT {
