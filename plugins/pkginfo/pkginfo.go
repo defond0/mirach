@@ -91,11 +91,13 @@ func GetInfoGroup(infoGroup string) string {
 	os := getOs()
 	if os == "windows" {
 		kb := new(KBStatus)
+		kb.GetInfo()
 		return kb.GetInfoGroup(infoGroup)
 
 	} else {
 		pkg := new(PkgStatus)
 		pkg.Os = os
+		pkg.GetInfo()
 		return pkg.GetInfoGroup(infoGroup)
 	}
 }
