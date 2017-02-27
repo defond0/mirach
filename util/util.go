@@ -64,6 +64,22 @@ func GetCA(dirs []string) ([]byte, error) {
 	return ca, nil
 }
 
+// GetConfig loads the configuration and return the config file used.
+func GetConfig(dirs []string) (string, error) {
+	viper.SetConfigName("config")
+	for _, d := range dirs {
+		viper.AddConfigPath(d)
+	}
+	viper.SetFs(Fs)
+	err := viper.ReadInConfig()
+	if err != nil {
+		return "", fmt.Errorf("Fatal error config file: %s \n", err)
+	}
+	viper.SetEnvPrefix("mirach")
+	viper.AutomaticEnv()
+	return viper.ConfigFileUsed(), nil
+}
+
 // ReadFile is a simple wrapper around afero.ReadFile.
 // afero.ReadFile is an implementation of the ReadFile interface from ioutil,
 // but operates on the afero filesystem.

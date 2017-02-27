@@ -9,14 +9,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
@@ -61,37 +58,6 @@ func getAsset(cust *Customer) (*Asset, error) {
 		return nil, err
 	}
 	return asset, nil
-}
-
-func getConfig() string {
-	if len(confDirs) == 0 {
-		if runtime.GOOS == "windows" {
-			// TODO: Will probably need to populate these with github.com/luisiturrios/gowin.
-			// Currently gowin is failing to install. Tracking with luisiturrios/gowin#5.
-			userConfDir = filepath.Join("%APPDATA%", "mirach")
-			sysConfDir = filepath.Join("%PROGRAMDATA%", "mirach")
-		} else {
-			home, err := homedir.Dir()
-			if err != nil {
-				panic(err)
-			}
-			userConfDir = filepath.Join(home, ".config/mirach")
-			sysConfDir = "/etc/mirach/"
-		}
-		confDirs = append(confDirs, ".", userConfDir, sysConfDir)
-	}
-	viper.SetConfigName("config")
-	for _, d := range confDirs {
-		viper.AddConfigPath(d)
-	}
-	viper.SetFs(util.Fs)
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
-	}
-	viper.SetEnvPrefix("mirach")
-	viper.AutomaticEnv()
-	return viper.ConfigFileUsed()
 }
 
 func getCustomer() (*Customer, error) {
@@ -176,8 +142,17 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 
 // PrepResources set up requirements and returns nodes.
 func PrepResources() (*Customer, *Asset, error) {
+	var err error
 	configureLogging()
-	getConfig()
+	confDirs, err = util.GetConfDirs()
+	if err != nil {
+		return nil, nil, err
+	}
+	userConfDir, sysConfDir = confDirs[1], confDirs[2]
+	_, err = util.GetConfig(confDirs)
+	if err != nil {
+		return nil, nil, err
+	}
 	cust, err := getCustomer()
 	if err != nil {
 		return nil, nil, err
