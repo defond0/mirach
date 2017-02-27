@@ -13,6 +13,8 @@ const S_FALSE = 0x00000001
 
 //grep returns exit status 1 when it gets no match, errors like that are fine
 func GetWindowsKBs() (map[string][]KBArticle, []error) {
+	err := coInit()
+	defer ole.CoUninitialize()
 	errors := []error{}
 	out := make(map[string][]KBArticle)
 	avail, err := getWindowsAvailableKBs()
@@ -35,11 +37,6 @@ func GetWindowsKBs() (map[string][]KBArticle, []error) {
 
 func getWindowsInstalledKBs() ([]KBArticle, error) {
 	art := []KBArticle{}
-	err := coInit()
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
 	updates := searchUpdates("IsInstalled=1")
 	defer updates.Release()
 	var kbId string
