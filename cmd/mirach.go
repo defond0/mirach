@@ -41,6 +41,6 @@ func init() {
 		"log level: error (default), info, trace")
 	compinfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "system",
 		"compinfo group to check: docker, load, system")
-	pkginfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "avail_sec",
-		"pkginfo group to check: available, available_security, installed")
+	pkginfoCmd.Flags().StringVarP(&InfoGroup, "infogroup", "i", "all",
+		"pkginfo group to check: available, available_security, installed, all")
 }
