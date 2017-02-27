@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/afero"
 	jww "github.com/spf13/jwalterweatherman"
+	"github.com/theherk/viper"
 )
 
 // Fs is the afero filesystem used in some util functions.

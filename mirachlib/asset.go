@@ -11,7 +11,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
+	"github.com/theherk/viper"
 )
 
 // CmdMsg is a json response object from IoT containing an asset command.

@@ -19,7 +19,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
+	"github.com/theherk/viper"
 )
 
 var (

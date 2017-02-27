@@ -9,8 +9,8 @@ import (
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/theherk/viper"
 )
 
 func TestMain(m *testing.M) {
