@@ -56,7 +56,7 @@ clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
 
 clean-mocks: ## remove mock artifacts
-	rm -rf $(GOPATH)/src/cleardata.com/mirach/.mocks
+	rm -rf $(GOPATH)/src/gitlab.eng.cleardata.com/mirach/.mocks
 
 deploy-docs: docs ## deploy docs to S3 bucket
 	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
@@ -79,7 +79,7 @@ lint: ## gofmt goimports
 
 mqtt-paho-mocks:
 	mkdir .mocks
-	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/cleardata.com/mirach/.mocks/
+	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/gitlab.eng.cleardata.com/mirach/.mocks/
 
 publish:
 	@echo "push to s3 at some point"

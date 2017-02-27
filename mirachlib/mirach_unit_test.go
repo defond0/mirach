@@ -5,7 +5,7 @@ package mirachlib
 import (
 	"testing"
 
-	"cleardata.com/dash/mirach/util"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/stretchr/testify/assert"

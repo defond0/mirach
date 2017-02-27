@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"cleardata.com/dash/mirach/plugins/compinfo"
-	"cleardata.com/dash/mirach/util"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	homedir "github.com/mitchellh/go-homedir"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"cleardata.com/dash/mirach/mirachlib"
+	"gitlab.eng.cleardata.com/dash/mirach/mirachlib"
 
 	"github.com/spf13/cobra"
 )

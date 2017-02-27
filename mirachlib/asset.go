@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"cleardata.com/dash/mirach/util"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	jww "github.com/spf13/jwalterweatherman"

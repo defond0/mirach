@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"cleardata.com/dash/mirach/util"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
