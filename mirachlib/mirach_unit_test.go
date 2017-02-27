@@ -13,22 +13,10 @@ import (
 
 func TestConfigureLogging(t *testing.T) {
 	assert := assert.New(t)
-	util.SetFs(testFs)
-	writeTestCerts()
-	writeTestGoodConfig()
+	util.SetFs(util.TestFs)
+	util.WriteTestCerts()
+	util.WriteTestGoodConfig()
 	configureLogging()
 	assert.Equal("error", logLevel, "log level default error")
 	assert.Equal(jww.LevelError, jww.StdoutThreshold())
-}
-
-func TestGetConfig(t *testing.T) {
-	assert := assert.New(t)
-	util.SetFs(testFs)
-	writeTestCerts()
-	writeTestGoodConfig()
-	getConfig()
-	assert.NotNil(confDirs)
-	assert.NotNil(userConfDir)
-	assert.NotNil(sysConfDir)
-	assert.Len(confDirs, 3, "current, user, and system")
 }

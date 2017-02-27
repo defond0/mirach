@@ -3,7 +3,6 @@
 package mirachlib
 
 import (
-	"flag"
 	"os"
 	"testing"
 
@@ -14,21 +13,21 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	flag.Parse()
 	os.Exit(m.Run())
 }
 
 func TestIntegrationMainRegistration(t *testing.T) {
 	assert := assert.New(t)
-	writeTestCerts()
-	writeTestGoodConfig()
-	util.SetFs(testFs)
+	util.ResetTestFs()
+	util.SetFs(util.TestFs)
+	util.WriteTestCerts()
+	util.WriteTestGoodConfig()
 	PrepResources()
 	// Verify we received correct customer_id and wrote it to config.
 	v := viper.New()
 	v.AddConfigPath("/etc/mirach/")
 	v.SetConfigName("config")
-	v.SetFs(testFs)
+	v.SetFs(util.TestFs)
 	err := v.ReadInConfig()
 	assert.Nil(err)
 	assert.Equal("00000666", v.GetString("customer.id"), "value in read config")
@@ -45,16 +44,16 @@ func TestIntegrationMainRegistration(t *testing.T) {
 //Attempt to register with customer number 00006913(not it's own)
 func TestIntegrationMainEvilListener(t *testing.T) {
 	assert := assert.New(t)
-	resetTestFS()
-	util.SetFs(testFs)
-	writeTestCerts()
-	writeTestEvilConfig()
+	util.ResetTestFs()
+	util.SetFs(util.TestFs)
+	util.WriteTestCerts()
+	util.WriteTestEvilConfig()
 	PrepResources()
 	// Verify we used our evil config.
 	v := viper.New()
 	v.AddConfigPath("/etc/mirach/")
 	v.SetConfigName("config")
-	v.SetFs(testFs)
+	v.SetFs(util.TestFs)
 	err := v.ReadInConfig()
 	assert.Equal("00006913", v.GetString("customer.id"), "value in read config")
 	priv, err := util.ReadFile("/etc/mirach/asset/keys/private.pem.key")
