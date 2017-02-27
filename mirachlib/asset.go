@@ -105,7 +105,7 @@ func (a *Asset) Register(c *Customer) error {
 	}
 	path := fmt.Sprintf("mirach/register/%s/%s", c.id, a.id)
 	pubToken := c.client.Publish(path, 1, false, "")
-	if !pubToken.WaitTimeout(10 * time.Second) {
+	if !pubToken.WaitTimeout(15 * time.Second) {
 		return errors.New("failed while registering; check credentials/config")
 	}
 	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
