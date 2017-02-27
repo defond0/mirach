@@ -7,7 +7,7 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
+	"github.com/theherk/viper"
 )
 
 // ExternalPlugin is a regularly run command that collects data.

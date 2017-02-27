@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"cleardata.com/dash/mirach/plugins/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
+
 	"github.com/spf13/cobra"
 )
 

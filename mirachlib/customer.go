@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"cleardata.com/dash/mirach/util"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
+	"github.com/theherk/viper"
 )
 
 // Customer is a Mirach IoT thing representing this customer.
