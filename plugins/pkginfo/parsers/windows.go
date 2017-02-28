@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	ole "github.com/go-ole/go-ole"
-	oleutil "github.com/go-ole/go-ole/oleutil"
+	"github.com/go-ole/go-ole/oleutil"
 )
 
 // S_FALSE is returned by CoInitializeEx if it was already called on this thread.
