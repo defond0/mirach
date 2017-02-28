@@ -48,4 +48,6 @@ func init() {
 	MirachCmd.AddCommand(compinfoCmd)
 	compinfoCmd.Flags().StringVarP(&infoGroup, "infogroup", "i", "system",
 		"compinfo group to check: docker, load, system")
+
+	MirachCmd.AddCommand(versionCmd)
 }
