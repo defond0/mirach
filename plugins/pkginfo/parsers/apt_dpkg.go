@@ -1,12 +1,11 @@
 package parsers
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 )
 
-//grep returns exit status 1 when it gets no match, errors like that are fine
+// GetAptDpkgPkgs creates map of available, installed and available security packages from aptitude and dpkg as well as a list of errors that occurred generating that list. grep returns exit status 1 when it gets no match, errors like that are fine
 func GetAptDpkgPkgs() (map[string][]LinuxPackage, []error) {
 	errors := []error{}
 	out := make(map[string][]LinuxPackage)
@@ -34,9 +33,8 @@ func getDpkgInstalledPackages() ([]LinuxPackage, error) {
 	aptget := command("dpkg -l")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
 
-	stdout, stderr, err := pipeline(aptget, awk)
+	stdout, _, err := pipeline(aptget, awk)
 	if err != nil {
-		fmt.Println(string(stderr))
 		return nil, err
 	}
 	return parsePacakgesFromBytes(stdout, false)
@@ -47,9 +45,8 @@ func getAptAvailablePackages() ([]LinuxPackage, error) {
 	grep := command("grep Inst")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
 
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	stdout, _, err := pipeline(aptget, grep, awk)
 	if err != nil {
-		fmt.Println(stderr)
 		return nil, err
 	}
 	return parsePacakgesFromBytes(stdout, false)
@@ -59,43 +56,43 @@ func getAptAvailableSecurityPackages() ([]LinuxPackage, error) {
 	aptget := command("apt-get upgrade -oDir::Etc::Sourcelist=/tmp/security.list -oDir::Etc::Sourceparts='-' -oDir::Etc::Vendorlist='-' -oDir::Etc::Vendorparts='-' -qq --just-print")
 	grep := command("grep Inst")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
-	stdout, stderr, err := pipeline(aptget, grep, awk)
+	stdout, _, err := pipeline(aptget, grep, awk)
 	if err != nil {
-		fmt.Println(string(stderr))
 		return nil, err
 	}
 	return parsePacakgesFromBytes(stdout, true)
 }
 
-func getAptitudeSecurityList() {
+func getAptitudeSecurityList() error {
 	cmd := command("grep security /etc/apt/sources.list")
 	outfile, err := os.Create("/tmp/security.list")
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	defer outfile.Close()
 	cmd.Stdout = outfile
-
 	err = cmd.Start()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }
 
-func cleanUpSecurityList() {
+func cleanUpSecurityList() error {
 	cmd := command("rm /tmp/security.list")
 	err := cmd.Start()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }

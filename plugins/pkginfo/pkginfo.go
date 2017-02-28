@@ -3,7 +3,8 @@ package pkginfo
 import (
 	"encoding/json"
 
-	"cleardata.com/dash/mirach/plugins/pkginfo/parsers"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo/parsers"
+
 	"github.com/shirou/gopsutil/host"
 )
 
@@ -13,17 +14,20 @@ type InfoGroup interface {
 	String() string
 }
 
+// PkgStatus represents the OS and map of list of LinuxPackage.
 type PkgStatus struct {
-	Os       string
+	OS       string
 	Packages map[string][]parsers.LinuxPackage `json:"packages"`
 }
 
+// KBStatus represents the OS and map of list of KBArticle.
 type KBStatus struct {
 	Articles map[string][]parsers.KBArticle `json:"articles"`
 }
 
+//GetInfo fill in the package status object with info.
 func (p *PkgStatus) GetInfo() {
-	switch p.Os {
+	switch p.OS {
 	case "debian":
 		packages, _ := parsers.GetAptDpkgPkgs()
 		p.Packages = packages
@@ -33,46 +37,56 @@ func (p *PkgStatus) GetInfo() {
 	}
 }
 
+//String returns the filled in data from PkgStatus as str.
 func (p *PkgStatus) String() string {
 	s, _ := json.Marshal(p)
 	return string(s)
 }
 
+//GetInfoGroup returns the filled in data for given group.
 func (p *PkgStatus) GetInfoGroup(infoGroup string) string {
 	s, _ := json.MarshalIndent(p.Packages[infoGroup], "", "  ")
 	return string(s)
 }
 
+//GetInfo fill in the kb status object with info.
 func (k *KBStatus) GetInfo() {
 	articles, _ := parsers.GetWindowsKBs()
 	k.Articles = articles
 }
 
+//GetInfoGroup returns the filled in data for given group.
 func (k *KBStatus) GetInfoGroup(infoGroup string) string {
 	s, _ := json.MarshalIndent(k.Articles[infoGroup], "", "  ")
 	return string(s)
 }
+
+//String returns the filled in data from PkgStatus as str.
 func (k *KBStatus) String() string {
 	s, _ := json.MarshalIndent(k, "", "  ")
 	return string(s)
 }
 
-func GetInfo() {
-	os := getOs()
+//GetInfo will load up and return InfoGroup for current OS.
+func GetInfo() InfoGroup {
+	os := getOS()
 	if os == "windows" {
 		kb := new(KBStatus)
 		kb.GetInfo()
+		return kb
 
 	} else {
 		pkg := new(PkgStatus)
-		pkg.Os = os
+		pkg.OS = os
 		pkg.GetInfo()
+		return pkg
 	}
 
 }
 
+//String will load up and return InfoGroup for current OS.
 func String() string {
-	os := getOs()
+	os := getOS()
 	if os == "windows" {
 		kb := new(KBStatus)
 		kb.GetInfo()
@@ -80,15 +94,16 @@ func String() string {
 
 	} else {
 		pkg := new(PkgStatus)
-		pkg.Os = os
+		pkg.OS = os
 		pkg.GetInfo()
 		return pkg.String()
 	}
 
 }
 
+//GetInfoGroup will load up and return InfoGroup for current OS.
 func GetInfoGroup(infoGroup string) string {
-	os := getOs()
+	os := getOS()
 	if os == "windows" {
 		kb := new(KBStatus)
 		kb.GetInfo()
@@ -96,13 +111,13 @@ func GetInfoGroup(infoGroup string) string {
 
 	} else {
 		pkg := new(PkgStatus)
-		pkg.Os = os
+		pkg.OS = os
 		pkg.GetInfo()
 		return pkg.GetInfoGroup(infoGroup)
 	}
 }
 
-func getOs() string {
+func getOS() string {
 	host, err := host.Info()
 	if err != nil {
 		panic(err)

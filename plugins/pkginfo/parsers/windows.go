@@ -11,7 +11,7 @@ import (
 // https://github.com/StackExchange/wmi/blob/master/wmi.go#L54
 const S_FALSE = 0x00000001
 
-//grep returns exit status 1 when it gets no match, errors like that are fine
+// GetWindowsKBs creates map of available, installed and available security kbs from Windows Update Agent as well as a list of errors that occurred generating that list.
 func GetWindowsKBs() (map[string][]KBArticle, []error) {
 	err := coInit()
 	defer ole.CoUninitialize()
@@ -37,12 +37,15 @@ func GetWindowsKBs() (map[string][]KBArticle, []error) {
 
 func getWindowsInstalledKBs() ([]KBArticle, error) {
 	art := []KBArticle{}
-	updates := searchUpdates("IsInstalled=1")
+	updates, err := searchUpdates("IsInstalled=1")
+	if err != nil {
+		return nil, err
+	}
 	defer updates.Release()
 	var kbId string
 	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
 		if err != nil {
-			fmt.Println(err)
+			return nil, err
 		}
 		defer update.Clear()
 		update_dispatch := update.ToIDispatch()
@@ -50,9 +53,9 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 		sev, err := update_dispatch.GetProperty("MsrcSeverity")
 		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
 		if err != nil {
-			fmt.Println(err)
+			return nil, err
 		}
-		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
+		kbIds, err := getEnumFromDispatch(kbs.ToIDispatch())
 		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
 			defer kb.Clear()
 			newKbId := fmt.Sprintf("KB%s", kb.Value())
@@ -73,24 +76,26 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 
 func getWindowsAvailableKBs() ([]KBArticle, error) {
 	art := []KBArticle{}
-	updates := searchUpdates("IsInstalled=0")
+	updates, err := searchUpdates("IsInstalled=0")
+	if err != nil {
+		return nil, err
+	}
 	defer updates.Release()
 	var kbId string
 	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
 		if err != nil {
-			fmt.Println(err)
-			panic(err)
+			return nil, err
 		}
 		defer update.Clear()
 		update_dispatch := update.ToIDispatch()
 		defer update_dispatch.Release()
 		sev, err := update_dispatch.GetProperty("MsrcSeverity")
 		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
+		kbIds, err := getEnumFromDispatch(kbs.ToIDispatch())
 		if err != nil {
-			fmt.Println("prop error")
-			fmt.Println(err)
+			return nil, err
 		}
-		kbIds := getEnumFromDispatch(kbs.ToIDispatch())
+
 		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
 			newKbId := fmt.Sprintf("KB%s", kb.Value())
 			if newKbId != kbId {
@@ -113,7 +118,6 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 func getWindowsAvailableSecurityKBs() ([]KBArticle, error) {
 	art, err := getWindowsAvailableKBs()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -131,7 +135,6 @@ func coInit() error {
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			fmt.Println(err)
 			return err
 		}
 	}
@@ -143,8 +146,6 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	classId, err := oleutil.ClassIDFrom("Microsoft.Update.Session")
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		fmt.Println(err)
-		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
 			return &ole.IDispatch{}, err
 		}
@@ -152,8 +153,6 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	session, err := ole.CreateInstance(classId, ole.IID_IUnknown)
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		fmt.Println(err)
-		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
 			return &ole.IDispatch{}, err
 		}
@@ -161,9 +160,7 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	dispatch := session.MustQueryInterface(ole.IID_IDispatch)
 	updateSearcherVar, err := dispatch.CallMethod("CreateUpdateSearcher")
 	if err != nil {
-		fmt.Println(err)
 		oleCode := err.(*ole.OleError).Code()
-		fmt.Println(oleCode)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
 			return &ole.IDispatch{}, err
 		}
@@ -173,39 +170,34 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 
 }
 
-func searchUpdates(query string) *ole.IEnumVARIANT {
+func searchUpdates(query string) (*ole.IEnumVARIANT, error) {
 	updateSearcher, err := getWindowsUpdateSearcher()
 	defer updateSearcher.Release()
 	if err != nil {
-		fmt.Println("err getting update searcher")
-		panic(err)
+		return nil, err
 	}
 	res, err := updateSearcher.CallMethod("Search", query)
 	if err != nil {
-		fmt.Println("UpdateSearcher.Search err")
 		oleCode := err.(*ole.OleError).Code()
-		fmt.Println(err)
 		if oleCode != ole.S_OK && oleCode != S_FALSE {
-			panic(err)
+			return nil, err
 		}
 	}
 	Updates, err := res.ToIDispatch().GetProperty("Updates")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return getEnumFromDispatch(Updates.ToIDispatch())
 }
 
-func getEnumFromDispatch(dis *ole.IDispatch) *ole.IEnumVARIANT {
+func getEnumFromDispatch(dis *ole.IDispatch) (*ole.IEnumVARIANT, error) {
 	listy, err := dis.GetProperty("_NewEnum")
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		return nil, err
 	}
 	enum, err := listy.ToIUnknown().IEnumVARIANT(ole.IID_IEnumVariant)
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		return nil, err
 	}
-	return enum
+	return enum, nil
 }

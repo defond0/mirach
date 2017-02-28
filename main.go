@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"cleardata.com/dash/mirach/cmd"
+	"gitlab.eng.cleardata.com/dash/mirach/cmd"
 )
 
 func main() {
