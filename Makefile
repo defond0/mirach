@@ -9,7 +9,7 @@ VERSION := $(shell git describe --always --dirty)
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
-LDFLAGS := "-X main.version=$(VERSION)"
+LDFLAGS := "-X gitlab.eng.cleardata.com/dash/mirach/util.Version=$(VERSION)"
 
 help:
 	$(info available targets:)
@@ -29,10 +29,12 @@ help:
 SYSTEMS := linux windows
 ARCHS := 386 amd64
 
+PROG_TARGETS :=
 define PROGRAM_template
-PROG_TARGETS += $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)
-$(BINDIR)/$(PROJECT_NAME)_$(1)_$(2)/$(PROJECT_NAME): export GOOS = $(1)
-$(BINDIR)/$(PROJECT_NAME)_$(1)_$(2)/$(PROJECT_NAME): export GOARCH = $(2)
+CUR := $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
+$$(CUR): export GOOS = $(1)
+$$(CUR): export GOARCH = $(2)
+PROG_TARGETS += $$(CUR)
 ARC_TARGETS += $(ARCDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2).zip
 endef
 
