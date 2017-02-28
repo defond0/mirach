@@ -1,18 +1,15 @@
 package util
 
 import (
+	"os"
 	"path/filepath"
-
-	"github.com/theherk/winpath"
 )
 
 // GetConfDirs return the ordered configuration directories.
 func GetConfDirs() ([]string, error) {
 	var dirs []string
-	appData, _ := winpath.LocalAppData()
-	comAppData, _ := winpath.CommonAppData()
-	user := filepath.Join(appData, "mirach")
-	sys := filepath.Join(comAppData, "mirach")
+	user := filepath.Join(os.Getenv("LocalAppData"), "mirach")
+	sys := filepath.Join(os.Getenv("ProgramData"), "mirach")
 	dirs = append(dirs, ".", user, sys)
 	return dirs, nil
 }

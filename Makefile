@@ -29,11 +29,12 @@ help:
 SYSTEMS := linux windows
 ARCHS := 386 amd64
 
+PROG_TARGETS :=
 define PROGRAM_template
-CUR = $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
-PROG_TARGETS += $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
-$(CUR): export GOOS = $(1)
-$(CUR): export GOARCH = $(2)
+CUR := $(BINDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2)/$(PROJECT_NAME)$(if $(filter windows,$(1)),.exe)
+$$(CUR): export GOOS = $(1)
+$$(CUR): export GOARCH = $(2)
+PROG_TARGETS += $$(CUR)
 ARC_TARGETS += $(ARCDIR)/$(PROJECT_NAME)_$(VERSION)_$(1)_$(2).zip
 endef
 
