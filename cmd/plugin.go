@@ -15,7 +15,7 @@ var compinfoCmd = &cobra.Command{
 		"you to run this one directly directly. It will return a json string of " +
 		"the type passed in with the -i switch or system information by default.",
 	Run: func(cmd *cobra.Command, args []string) {
-		switch InfoGroup {
+		switch infoGroup {
 		case "load":
 			fmt.Println(compinfo.GetLoadString())
 		case "docker":
