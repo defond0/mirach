@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	"encoding/json"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo/parsers"
 
-	"cleardata.com/dash/mirach/plugins/pkginfo/parsers"
+	"encoding/json"
 )
 
 type MockInfoGroup struct {

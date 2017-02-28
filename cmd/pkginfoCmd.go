@@ -15,8 +15,8 @@ var pkginfoCmd = &cobra.Command{
 		"you to run this one directly directly. It will return a json string of " +
 		"the type passed in with the -i switch or system information by default.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if InfoGroup != "all" {
-			fmt.Println(pkginfo.GetInfoGroup(InfoGroup))
+		if infoGroup != "all" {
+			fmt.Println(pkginfo.GetInfoGroup(infoGroup))
 		} else {
 			pkginfo.GetInfo()
 			fmt.Println(pkginfo.String())
