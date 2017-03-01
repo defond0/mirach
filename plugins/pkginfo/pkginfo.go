@@ -1,0 +1,130 @@
+package pkginfo
+
+import (
+	"encoding/json"
+
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo/parsers"
+
+	"github.com/shirou/gopsutil/host"
+)
+
+// InfoGroup is an interface for getting data and marshaling to json.
+type InfoGroup interface {
+	GetInfo()
+	String() string
+}
+
+// PkgStatus represents the OS and map of list of LinuxPackage.
+type PkgStatus struct {
+	OS       string
+	Packages map[string][]parsers.LinuxPackage `json:"packages"`
+}
+
+// KBStatus represents the OS and map of list of KBArticle.
+type KBStatus struct {
+	Articles map[string][]parsers.KBArticle `json:"articles"`
+}
+
+//GetInfo fill in the package status object with info.
+func (p *PkgStatus) GetInfo() {
+	switch p.OS {
+	case "debian":
+		packages, _ := parsers.GetAptDpkgPkgs()
+		p.Packages = packages
+	case "rhel":
+		packages, _ := parsers.GetYumPkgs()
+		p.Packages = packages
+	}
+}
+
+//String returns the filled in data from PkgStatus as str.
+func (p *PkgStatus) String() string {
+	s, _ := json.Marshal(p)
+	return string(s)
+}
+
+//GetInfoGroup returns the filled in data for given group.
+func (p *PkgStatus) GetInfoGroup(infoGroup string) string {
+	s, _ := json.MarshalIndent(p.Packages[infoGroup], "", "  ")
+	return string(s)
+}
+
+//GetInfo fill in the kb status object with info.
+func (k *KBStatus) GetInfo() {
+	articles, _ := parsers.GetWindowsKBs()
+	k.Articles = articles
+}
+
+//GetInfoGroup returns the filled in data for given group.
+func (k *KBStatus) GetInfoGroup(infoGroup string) string {
+	s, _ := json.MarshalIndent(k.Articles[infoGroup], "", "  ")
+	return string(s)
+}
+
+//String returns the filled in data from PkgStatus as str.
+func (k *KBStatus) String() string {
+	s, _ := json.MarshalIndent(k, "", "  ")
+	return string(s)
+}
+
+//GetInfo will load up and return InfoGroup for current OS.
+func GetInfo() InfoGroup {
+	os := getOS()
+	if os == "windows" {
+		kb := new(KBStatus)
+		kb.GetInfo()
+		return kb
+
+	} else {
+		pkg := new(PkgStatus)
+		pkg.OS = os
+		pkg.GetInfo()
+		return pkg
+	}
+
+}
+
+//String will load up and return InfoGroup for current OS.
+func String() string {
+	os := getOS()
+	if os == "windows" {
+		kb := new(KBStatus)
+		kb.GetInfo()
+		return kb.String()
+
+	} else {
+		pkg := new(PkgStatus)
+		pkg.OS = os
+		pkg.GetInfo()
+		return pkg.String()
+	}
+
+}
+
+//GetInfoGroup will load up and return InfoGroup for current OS.
+func GetInfoGroup(infoGroup string) string {
+	os := getOS()
+	if os == "windows" {
+		kb := new(KBStatus)
+		kb.GetInfo()
+		return kb.GetInfoGroup(infoGroup)
+
+	} else {
+		pkg := new(PkgStatus)
+		pkg.OS = os
+		pkg.GetInfo()
+		return pkg.GetInfoGroup(infoGroup)
+	}
+}
+
+func getOS() string {
+	host, err := host.Info()
+	if err != nil {
+		panic(err)
+	}
+	if host.OS != "windows" {
+		return host.PlatformFamily
+	} else {
+		return host.OS
+	}
+}

@@ -3,9 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
-
 	"github.com/spf13/cobra"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
 )
 
 var compinfoCmd = &cobra.Command{
