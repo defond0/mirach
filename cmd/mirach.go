@@ -46,9 +46,9 @@ func init() {
 	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
 
 	MirachCmd.AddCommand(compinfoCmd)
-	MirachCmd.AddCommand(pkginfoCmd)
 	compinfoCmd.Flags().StringVarP(&infoGroup, "infogroup", "i", "system",
 		"compinfo group to check: docker, load, system")
 
+	MirachCmd.AddCommand(pkginfoCmd)
 	MirachCmd.AddCommand(versionCmd)
 }
