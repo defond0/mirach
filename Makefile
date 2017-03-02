@@ -13,7 +13,7 @@ LDFLAGS := "-X gitlab.eng.cleardata.com/dash/mirach/util.Version=$(VERSION)"
 
 help:
 	$(info available targets:)
-	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+	@awk '/^[a-zA-Z\-\_0-9\.]+:/ { \
 		nb = sub( /^## /, "", helpMsg ); \
 		if(nb == 0) { \
 			helpMsg = $$0; \
