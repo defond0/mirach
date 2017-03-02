@@ -50,5 +50,8 @@ func init() {
 		"compinfo group to check: docker, load, system")
 
 	MirachCmd.AddCommand(pkginfoCmd)
+	pkginfoCmd.Flags().StringVarP(&infoGroup, "infogroup", "i", "all",
+		"pkginfo group to check: available, available_security, installed")
+
 	MirachCmd.AddCommand(versionCmd)
 }
