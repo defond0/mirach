@@ -63,8 +63,13 @@ clean-mocks: ## remove mock artifacts
 deploy-docs: docs ## deploy docs to S3 bucket
 	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
 
-docs: ## generate docs
-	godoc . > ./docs/html/$(PROJECT_NAME).html
+docs: docs/html/index.html ## generate docs
+
+docs/html/index.html:
+	mkdir -p docs/html/
+	godoc -url "http://localhost:6060/pkg/$(ROOTPKG)" | \
+	sed 's/\(href="\)\(\/lib\)/\1https:\/\/golang.org\2/g' > docs/html/index.html
+
 
 install: install-build-deps ## install to GOPATH
 	go install -v -ldflags=$(LDFLAGS)
