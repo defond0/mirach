@@ -9,7 +9,8 @@ VERSION := $(shell git describe --always --dirty)
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
-LDFLAGS := "-X gitlab.eng.cleardata.com/dash/mirach/util.Version=$(VERSION)"
+ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
+LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
 help:
 	$(info available targets:)
