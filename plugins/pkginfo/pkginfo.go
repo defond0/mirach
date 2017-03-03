@@ -74,14 +74,11 @@ func GetInfo() InfoGroup {
 		kb := new(KBStatus)
 		kb.GetInfo()
 		return kb
-
-	} else {
-		pkg := new(PkgStatus)
-		pkg.OS = os
-		pkg.GetInfo()
-		return pkg
 	}
-
+	pkg := new(PkgStatus)
+	pkg.OS = os
+	pkg.GetInfo()
+	return pkg
 }
 
 //String will load up and return InfoGroup for current OS.
@@ -91,13 +88,11 @@ func String() string {
 		kb := new(KBStatus)
 		kb.GetInfo()
 		return kb.String()
-
-	} else {
-		pkg := new(PkgStatus)
-		pkg.OS = os
-		pkg.GetInfo()
-		return pkg.String()
 	}
+	pkg := new(PkgStatus)
+	pkg.OS = os
+	pkg.GetInfo()
+	return pkg.String()
 
 }
 
@@ -108,13 +103,11 @@ func GetInfoGroup(infoGroup string) string {
 		kb := new(KBStatus)
 		kb.GetInfo()
 		return kb.GetInfoGroup(infoGroup)
-
-	} else {
-		pkg := new(PkgStatus)
-		pkg.OS = os
-		pkg.GetInfo()
-		return pkg.GetInfoGroup(infoGroup)
 	}
+	pkg := new(PkgStatus)
+	pkg.OS = os
+	pkg.GetInfo()
+	return pkg.GetInfoGroup(infoGroup)
 }
 
 func getOS() string {
@@ -124,7 +117,6 @@ func getOS() string {
 	}
 	if host.OS != "windows" {
 		return host.PlatformFamily
-	} else {
-		return host.OS
 	}
+	return host.OS
 }

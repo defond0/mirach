@@ -9,11 +9,12 @@ VERSION := $(shell git describe --always --dirty)
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
-LDFLAGS := "-X gitlab.eng.cleardata.com/dash/mirach/util.Version=$(VERSION)"
+ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
+LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
 help:
 	$(info available targets:)
-	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+	@awk '/^[a-zA-Z\-\_0-9\.]+:/ { \
 		nb = sub( /^## /, "", helpMsg ); \
 		if(nb == 0) { \
 			helpMsg = $$0; \
@@ -62,8 +63,13 @@ clean-mocks: ## remove mock artifacts
 deploy-docs: docs ## deploy docs to S3 bucket
 	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
 
-docs: ## generate docs
-	godoc . > ./docs/html/$(PROJECT_NAME).html
+docs: docs/html/index.html ## generate docs
+
+docs/html/index.html:
+	mkdir -p docs/html/
+	godoc -url "http://localhost:6060/pkg/$(ROOTPKG)" | \
+	sed 's/\(href="\)\(\/lib\)/\1https:\/\/golang.org\2/g' > docs/html/index.html
+
 
 install: install-build-deps ## install to GOPATH
 	go install -v -ldflags=$(LDFLAGS)
@@ -84,6 +90,10 @@ mqtt-paho-mocks:
 
 publish:
 	@echo "push to s3 at some point"
+
+README.md: ## convert go docs from doc.go to README.md; run with -B to force
+	go get github.com/robertkrimen/godocdown/godocdown
+	godocdown $(ROOTPKG) | sed "s/^--$$//" > README.md
 
 release: req-release-type req-release-repo clean ## package and upload a release
 	release -t $(RELEASE_TYPE) -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
