@@ -87,7 +87,7 @@ publish:
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
-	godocdown gitlab.eng.cleardata.com/dash/mirach | sed "s/^--$$//" > README.md
+	godocdown $(ROOTPKG) | sed "s/^--$$//" > README.md
 
 release: req-release-type req-release-repo clean ## package and upload a release
 	release -t $(RELEASE_TYPE) -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
