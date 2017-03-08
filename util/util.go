@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	"github.com/spf13/afero"
 	jww "github.com/spf13/jwalterweatherman"
@@ -91,6 +92,40 @@ func ReadFile(path string) ([]byte, error) {
 // Not setting this will us OsFs by default.
 func SetFs(fs afero.Fs) {
 	Fs = fs
+}
+
+// SplitAt splits a byte slice into a variable number of byte slices no
+// larger than a given number of bytes.
+// Each byte slice will be of the given size, except the last, which may
+// be smaller.
+func SplitAt(b []byte, size int) ([][]byte, error) {
+	var chunks [][]byte
+	for len(b) > size {
+		chunks = append(chunks, b[:size])
+		b = b[size:]
+	}
+	if len(b) > 0 {
+		chunks = append(chunks, b)
+	}
+	return chunks, nil
+}
+
+// SplitStringAt splits a string into a variable number of strings no larger than
+// a given number of bytes.
+func SplitStringAt(s string, size int) ([]string, error) {
+	var chunks []string
+	for len(s) > size {
+		i := size
+		for i >= size-utf8.UTFMax && !utf8.RuneStart(s[i]) {
+			i--
+		}
+		chunks = append(chunks, s[:i])
+		s = s[i:]
+	}
+	if len(s) > 0 {
+		chunks = append(chunks, s)
+	}
+	return chunks, nil
 }
 
 // Timeout starts a go routine which writes true to the given channel
