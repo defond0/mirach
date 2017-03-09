@@ -143,7 +143,8 @@ func sendChunks(b []byte, c mqtt.Client) ([]string, error) {
 		return nil, err
 	}
 	for _, split := range splits {
-		id := uuid.New()
+		id := fmt.Sprintf("%s", uuid.New())
+		chunks = append(chunks, id)
 		path := fmt.Sprintf("mirach/chunk/%s", id)
 		chunk := dataChunk{Data: split}
 		mes, err := json.Marshal(chunk)
