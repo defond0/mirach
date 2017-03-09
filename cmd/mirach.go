@@ -12,9 +12,10 @@ import (
 
 // flag variables
 var (
-	infoGroup string
-	level     string
-	version   bool
+	compInfoGroup string
+	level         string
+	pkgInfoGroup  string
+	version       bool
 )
 
 // MirachCmd is the root mirach command.
@@ -46,11 +47,11 @@ func init() {
 	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
 
 	MirachCmd.AddCommand(compinfoCmd)
-	compinfoCmd.Flags().StringVarP(&infoGroup, "infogroup", "i", "system",
+	compinfoCmd.Flags().StringVarP(&compInfoGroup, "infogroup", "i", "system",
 		"compinfo group to check: docker, load, system")
 
 	MirachCmd.AddCommand(pkginfoCmd)
-	pkginfoCmd.Flags().StringVarP(&infoGroup, "infogroup", "i", "all",
+	pkginfoCmd.Flags().StringVarP(&pkgInfoGroup, "infogroup", "i", "all",
 		"pkginfo group to check: available, available_security, installed")
 
 	MirachCmd.AddCommand(versionCmd)
