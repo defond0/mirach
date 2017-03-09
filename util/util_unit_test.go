@@ -76,7 +76,7 @@ func TestSplitAt(t *testing.T) {
 	for x := range out {
 		for y := range out[x] {
 			if out[x][y] != exp[x][y] {
-				t.Error("slice split incorrectly: %v", out)
+				t.Errorf("slice split incorrectly: %v", out)
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func TestSplitStringAt(t *testing.T) {
 	}
 	for i := range out {
 		if out[i] != exp[i] {
-			t.Error("string split incorrectly: %v", out)
+			t.Errorf("string split incorrectly: %v", out)
 		}
 	}
 }
