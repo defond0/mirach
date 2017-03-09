@@ -45,10 +45,6 @@ type dataMsg struct {
 	Data json.RawMessage `json:"data"`
 }
 
-type dataChunk struct {
-	Data []byte `json:"data"`
-}
-
 type urlMsg struct {
 	mqttMsg
 	URL string `json:"url"`
@@ -146,12 +142,7 @@ func sendChunks(b []byte, c mqtt.Client) ([]string, error) {
 		id := fmt.Sprintf("%s", uuid.New())
 		chunks = append(chunks, id)
 		path := fmt.Sprintf("mirach/chunk/%s", id)
-		chunk := dataChunk{Data: split}
-		mes, err := json.Marshal(chunk)
-		if err != nil {
-			return nil, err
-		}
-		if err := PubWait(c, path, mes); err != nil {
+		if err := PubWait(c, path, split); err != nil {
 			return nil, err
 		}
 	}
