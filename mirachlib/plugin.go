@@ -1,6 +1,8 @@
 package mirachlib
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -37,7 +39,9 @@ type mqttMsg struct {
 
 type chunksMsg struct {
 	mqttMsg
-	Chunks []string `json:"chunks"`
+	NumChunks int    `json:"num_chunks"`
+	ChunksID  string `json:"chunks_id"`
+	ChunksSum string `json:"chunks_sum"`
 }
 
 type dataMsg struct {
@@ -109,11 +113,11 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 	// 		return err
 	// 	}
 	case len(b) >= ChunkSize:
-		data, err := sendChunks(b, c)
+		n, id, sum, err := SendChunks(b, c)
 		if err != nil {
 			return err
 		}
-		m := chunksMsg{msg, data}
+		m := chunksMsg{msg, n, id, sum}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
@@ -132,19 +136,24 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 	return nil
 }
 
-func sendChunks(b []byte, c mqtt.Client) ([]string, error) {
-	var chunks []string
+// SendChunks splits a byte slice and return the number of chunks, ID of
+// the chunk group, hex digest of the full byte slice's md5 hash, or any
+// errors generated along the way.
+func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
+	id := fmt.Sprintf("%s", uuid.New())
+	h := md5.Sum(b)
+	sum := hex.EncodeToString(h[:])
+	var n int
 	splits, err := util.SplitAt(b, ChunkSize)
 	if err != nil {
-		return nil, err
+		return 0, "", "", err
 	}
-	for _, split := range splits {
-		id := fmt.Sprintf("%s", uuid.New())
-		chunks = append(chunks, id)
-		path := fmt.Sprintf("mirach/chunk/%s", id)
+	for i, split := range splits {
+		path := fmt.Sprintf("mirach/chunk/%s-%s", id, string(i))
 		if err := PubWait(c, path, split); err != nil {
-			return nil, err
+			return 0, "", "", err
 		}
+		n++
 	}
-	return chunks, nil
+	return n, id, sum, nil
 }
