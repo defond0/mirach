@@ -51,10 +51,12 @@ type urlMsg struct {
 }
 
 // Run will run an external plugin and publishes its results.
-func (p *ExternalPlugin) Run(c MQTT.Client) func() {
+func (p *ExternalPlugin) Run(c mqtt.Client) func() {
+	cmd := p.Cmd
+	label := p.Label
 	return func() {
-		jww.INFO.Printf("Running external plugin: %s", p.Label)
-		cmd := exec.Command(p.Cmd)
+		jww.INFO.Printf("Running external plugin: %s", label)
+		cmd := exec.Command(cmd)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			jww.ERROR.Println(err)
@@ -62,34 +64,31 @@ func (p *ExternalPlugin) Run(c MQTT.Client) func() {
 		if err := cmd.Start(); err != nil {
 			jww.ERROR.Println(err)
 		}
-		res := result{Type: p.Label}
-		if err := json.NewDecoder(stdout).Decode(&res.Data); err != nil {
+		var d []byte
+		if err := json.NewDecoder(stdout).Decode(&d); err != nil {
 			jww.ERROR.Println(err)
 		}
 		err = cmd.Wait()
-		custID := viper.GetString("customer.id")
-		assetID := viper.GetString("asset.id")
-		mes, err := json.Marshal(res)
-		if err != nil {
+		if err := SendData([]byte(d), c, label); err != nil {
 			jww.ERROR.Println(err)
 		}
-		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
-		token := c.Publish(path, 1, false, string(mes))
-		token.Wait()
 	}
 }
 
 // Run will run an internal function and publish its results.
-func (p *InternalPlugin) Run(c MQTT.Client) func() {
+func (p *InternalPlugin) Run(c mqtt.Client) func() {
+	f := p.StrFunc
+	label := p.Label
+	t := p.Type
 	return func() {
-		jww.INFO.Printf("Running internal plugin: %s", p.Label)
-		res := result{Type: p.Type}
-		if err := json.Unmarshal([]byte(p.StrFunc()), &res.Data); err != nil {
+		jww.INFO.Printf("Running internal plugin: %s", label)
+		d := f()
+		if err := SendData([]byte(d), c, t); err != nil {
 			jww.ERROR.Println(err)
 		}
-		custID := viper.GetString("customer.id")
-		assetID := viper.GetString("asset.id")
-		mes, err := json.Marshal(res)
+	}
+}
+
 		if err != nil {
 			jww.ERROR.Println(err)
 		}
