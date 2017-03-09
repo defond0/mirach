@@ -89,11 +89,61 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 	}
 }
 
+func postData(b []byte) (string, error) {
+	// TODO: This will implement the push to S3.
+	return "theurl", nil
+}
+
+// SendData sends data using one of a few methods to an MQTT broker.
+func SendData(b []byte, c mqtt.Client, t string) error {
+	custID := viper.GetString("customer.id")
+	assetID := viper.GetString("asset.id")
+	var err error
+	msg := mqttMsg{Type: t}
+	var msgB []byte
+	switch {
+	// TODO: case when implementing large storage upload
+	// case len(b) >= 512000:
+	// 	data, err := postData(b)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	case len(b) >= ChunkSize:
+		data, err := sendChunks(b, c)
 		if err != nil {
-			jww.ERROR.Println(err)
+			return err
 		}
-		path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
-		token := c.Publish(path, 1, false, string(mes))
-		token.Wait()
+		m := chunksMsg{msg, data}
+		msgB, err = json.Marshal(m)
+		if err != nil {
+			return err
+		}
+	default:
+		m := dataMsg{msg, json.RawMessage(string(b))}
+		msgB, err = json.Marshal(m)
+		if err != nil {
+			return err
+		}
 	}
+	path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
+	if err := PubWait(c, path, msgB); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendChunks(b []byte, c mqtt.Client) ([]string, error) {
+	var chunks []string
+	splits, err := util.SplitAt(b, ChunkSize)
+	if err != nil {
+		return nil, err
+	}
+	for _, split := range splits {
+		id := uuid.New()
+		path := fmt.Sprintf("mirach/chunk/%s", id)
+		if err := PubWait(c, path, split); err != nil {
+			return nil, err
+		}
+	}
+	return chunks, nil
 }
