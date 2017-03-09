@@ -140,6 +140,7 @@ func sendChunks(b []byte, c mqtt.Client) ([]string, error) {
 	}
 	for _, split := range splits {
 		id := uuid.New()
+		chunks = append(chunks, id)
 		path := fmt.Sprintf("mirach/chunk/%s", id)
 		if err := PubWait(c, path, split); err != nil {
 			return nil, err
