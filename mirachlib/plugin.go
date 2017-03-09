@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os/exec"
 
-	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"gitlab.eng.cleardata.com/dash/mirach/util"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
@@ -28,9 +31,23 @@ type InternalPlugin struct {
 	Type     string
 }
 
-type result struct {
+type mqttMsg struct {
 	Type string `json:"type"`
-	Data string `json:"data"`
+}
+
+type chunksMsg struct {
+	mqttMsg
+	Chunks []string `json:"chunks"`
+}
+
+type dataMsg struct {
+	mqttMsg
+	Data json.RawMessage `json:"data"`
+}
+
+type urlMsg struct {
+	mqttMsg
+	URL string `json:"url"`
 }
 
 // Run will run an external plugin and publishes its results.
