@@ -11,6 +11,7 @@ import (
 	"os/signal"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -106,6 +107,12 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 			Schedule: "@daily",
 			StrFunc:  compinfo.GetSysString,
 			Type:     "compinfo",
+		},
+		{
+			Label:    "pkginfo",
+			Schedule: "@daily",
+			StrFunc:  pkginfo.String,
+			Type:     "pkginfo",
 		},
 	}
 	cron.Start()
