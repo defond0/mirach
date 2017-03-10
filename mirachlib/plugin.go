@@ -16,7 +16,7 @@ import (
 )
 
 // ChunkSize defines the maximum size of chunks to be sent over MQTT.
-const ChunkSize = 120000
+const ChunkSize = 88000
 
 // ExternalPlugin is a regularly run command that collects data.
 type ExternalPlugin struct {
