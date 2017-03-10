@@ -31,3 +31,12 @@ func NewClient(ca, privKey, cert []byte, id string) (mqtt.Client, error) {
 	}
 	return c, nil
 }
+
+// PubWait publishes a byte slice to a given path using a given client.
+func PubWait(c mqtt.Client, path string, b []byte) error {
+	token := c.Publish(path, 1, false, b)
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	return nil
+}
