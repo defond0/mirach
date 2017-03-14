@@ -78,6 +78,7 @@ func GetCA(dirs []string) ([]byte, error) {
 
 // GetConfig loads the configuration and return the config file used.
 func GetConfig(dirs []string) (string, error) {
+	viper.Reset()
 	viper.SetConfigName("config")
 	for _, d := range dirs {
 		viper.AddConfigPath(d)
