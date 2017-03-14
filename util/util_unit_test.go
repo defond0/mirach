@@ -3,6 +3,7 @@
 package util
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,6 +19,19 @@ func TestMain(m *testing.M) {
 	WriteTestCerts()
 	WriteTestGoodConfig()
 	os.Exit(m.Run())
+}
+
+func TestCheckExceptions(t *testing.T) {
+	assert := assert.New(t)
+	exceptions := []string{"known exception"}
+	known := errors.New("known exception")
+	unknown := errors.New("unknown error")
+	s, e := CheckExceptions(known, exceptions)
+	assert.Nil(e)
+	assert.Equal(s, "known exception")
+	s, e = CheckExceptions(unknown, exceptions)
+	assert.Equal(s, "")
+	assert.Equal(e.Error(), "unknown error")
 }
 
 func TestFindInDirs(t *testing.T) {

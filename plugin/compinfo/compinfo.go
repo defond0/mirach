@@ -16,11 +16,19 @@ package compinfo
 import (
 	"encoding/json"
 
+	"gitlab.eng.cleardata.com/dash/mirach/plugin"
+
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/docker"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
 )
+
+// Exceptions is a list of strings containing error strings that are expected
+// in conditions are are okay and for which operation should continue.
+var Exceptions = []string{
+	docker.ErrDockerNotAvailable.Error(),
+}
 
 // InfoGroup is an interface for getting data and marshaling to json.
 type InfoGroup interface {
@@ -60,11 +68,11 @@ func (g *Docker) GetInfo() {
 	var err error
 	g.IDs, err = docker.GetDockerIDList()
 	if err != nil {
-		panic(err)
+		panic(plugin.ExceptionOrError(err, Exceptions))
 	}
 	g.Stat, err = docker.GetDockerStat()
 	if err != nil {
-		panic(err)
+		panic(plugin.ExceptionOrError(err, Exceptions))
 	}
 }
 

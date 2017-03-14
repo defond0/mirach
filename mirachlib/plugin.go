@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"reflect"
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
@@ -16,7 +17,7 @@ import (
 )
 
 // ChunkSize defines the maximum size of chunks to be sent over MQTT.
-const ChunkSize = 120000
+const ChunkSize = 88000
 
 // ExternalPlugin is a regularly run command that collects data.
 type ExternalPlugin struct {
@@ -85,6 +86,15 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 	label := p.Label
 	t := p.Type
 	return func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if reflect.TypeOf(r).String() == "plugin.Exception" {
+					jww.TRACE.Println(r)
+					return
+				}
+				jww.ERROR.Println(r)
+			}
+		}()
 		jww.INFO.Printf("Running internal plugin: %s", label)
 		d := f()
 		if err := SendData([]byte(d), c, t); err != nil {
@@ -149,7 +159,7 @@ func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
 		return 0, "", "", err
 	}
 	for i, split := range splits {
-		path := fmt.Sprintf("mirach/chunk/%s-%s", id, string(i))
+		path := fmt.Sprintf("mirach/chunk/%s-%d", id, i)
 		if err := PubWait(c, path, split); err != nil {
 			return 0, "", "", err
 		}

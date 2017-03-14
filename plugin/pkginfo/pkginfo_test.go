@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo/parsers"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
 
 	"encoding/json"
 )

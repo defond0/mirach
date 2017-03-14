@@ -15,6 +15,31 @@ import (
 // It can be set to another filesystem by calling SetFs, but defaults to afero.OsFs.
 var Fs = afero.NewOsFs()
 
+// BlankConfig is called to create a blank configuration of given type at given
+// directory.
+// When this is complete, if successful, it calls GetConfig for this file.
+func BlankConfig(cfgType, dir string) error {
+	cfgPath := filepath.Join(dir, "config."+cfgType)
+	if err := ForceWrite(cfgPath, ""); err != nil {
+		return err
+	}
+	if _, err := GetConfig([]string{dir}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// CheckExceptions checks to see if given error is in the given list of exceptions.
+// It returns the string of the known exception if found or the error if not.
+func CheckExceptions(err error, exceptions []string) (string, error) {
+	for _, s := range exceptions {
+		if err.Error() == s {
+			return s, nil
+		}
+	}
+	return "", err
+}
+
 // Exists is a simple wrapper around afero.Exists.
 func Exists(path string) (bool, error) {
 	return afero.Exists(Fs, path)
@@ -67,6 +92,7 @@ func GetCA(dirs []string) ([]byte, error) {
 
 // GetConfig loads the configuration and return the config file used.
 func GetConfig(dirs []string) (string, error) {
+	viper.Reset()
 	viper.SetConfigName("config")
 	for _, d := range dirs {
 		viper.AddConfigPath(d)
