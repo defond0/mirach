@@ -16,8 +16,8 @@ func (e Exception) Error() string {
 	return e.msg
 }
 
-// ExceptionOrError returns an error of our custom type Error or the base error
-// based on the errors presence in the list of known exceptions given.
+// ExceptionOrError returns an error of our custom type Exception or the base
+// error based on the errors presence in the list of known exceptions given.
 func ExceptionOrError(err error, exceptions []string) error {
 	if excString, _ := util.CheckExceptions(err, exceptions); excString != "" {
 		return Exception{excString}
