@@ -6,6 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/theherk/viper"
 )
 
 func readAssetID() string {
@@ -21,4 +23,24 @@ func readAssetID() string {
 		}
 	}
 	return in
+}
+
+func readCfgType() string {
+	fmt.Println("creating blank configuration file")
+	var in string
+	for {
+		fmt.Printf("config type, %s (default: yaml): ", viper.SupportedExts)
+		stdin := bufio.NewReader(os.Stdin)
+		read, _ := stdin.ReadString('\n')
+		in = strings.TrimRight(read, "\n")
+		if in == "" {
+			return "yaml"
+		}
+		for _, t := range viper.SupportedExts {
+			if in == t {
+				return t
+			}
+		}
+		fmt.Println("must leave blank or enter one of the valid values given above; try again")
+	}
 }

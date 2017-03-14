@@ -147,7 +147,11 @@ func PrepResources() (*Asset, error) {
 	userConfDir, sysConfDir = confDirs[1], confDirs[2]
 	_, err = util.GetConfig(confDirs)
 	if err != nil {
-		return nil, err
+		cfgType := readCfgType()
+		err := util.BlankConfig(cfgType, sysConfDir)
+		if err != nil {
+			return nil, err
+		}
 	}
 	asset, err := getAsset()
 	if err != nil {
