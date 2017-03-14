@@ -111,7 +111,7 @@ func (a *Asset) Register(c *Customer) error {
 	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
 		return subToken.Error()
 	}
-	timeoutCh := util.Timeout(10 * time.Second)
+	timeoutCh := util.Timeout(15 * time.Second)
 	select {
 	case res := <-c.regMsg:
 		keyPath := filepath.Join(sysConfDir, "asset", "keys")
