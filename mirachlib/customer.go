@@ -53,14 +53,9 @@ func (c *Customer) Init() error {
 	if err != nil {
 		return err
 	}
-	ca, err := util.GetCA(confDirs)
-	if err != nil {
-		return err
-	}
 	if _, err = c.GetCustomerID(); err != nil {
 		return err
 	}
-	c.client, err = NewClient(ca, c.privKey, c.cert, c.id)
 	if err != nil {
 		return errors.New("customer client connection failed")
 	}
@@ -81,6 +76,7 @@ func (c *Customer) GetCustomerID() (string, error) {
 	if err != nil {
 		return "", errors.New("registration client connection failed")
 	}
+	defer client.Disconnect(0)
 	idMsg := make(chan CustIDMsg, 1)
 	idHandler := func(client mqtt.Client, msg mqtt.Message) {
 		res := CustIDMsg{}
