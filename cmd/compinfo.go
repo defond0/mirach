@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
 )
 
 var compinfoCmd = &cobra.Command{

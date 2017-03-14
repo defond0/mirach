@@ -1,4 +1,4 @@
-package plugins
+package plugin
 
 import (
 	"gitlab.eng.cleardata.com/dash/mirach/util"

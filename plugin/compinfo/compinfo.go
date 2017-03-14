@@ -16,7 +16,7 @@ package compinfo
 import (
 	"encoding/json"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugins"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/docker"
@@ -68,11 +68,11 @@ func (g *Docker) GetInfo() {
 	var err error
 	g.IDs, err = docker.GetDockerIDList()
 	if err != nil {
-		panic(plugins.ExceptionOrError(err, Exceptions))
+		panic(plugin.ExceptionOrError(err, Exceptions))
 	}
 	g.Stat, err = docker.GetDockerStat()
 	if err != nil {
-		panic(plugins.ExceptionOrError(err, Exceptions))
+		panic(plugin.ExceptionOrError(err, Exceptions))
 	}
 }
 

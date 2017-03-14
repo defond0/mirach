@@ -10,8 +10,8 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
