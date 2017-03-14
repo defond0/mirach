@@ -1,16 +1,3 @@
-// Package compinfo is a plugin that provides information about the asset.
-//
-// Called via cli
-// mirach info --group=<group>
-// output: json (properties at top level)
-//
-// Called via api
-// info.<InfoGroup>.GetInfo()
-// returns: info.<InfoGroup>
-// or
-// info.<InfoGroup>.String()
-// returns: String
-// ex. fmt.Println(info.<InfoGroup>)
 package compinfo
 
 import (
