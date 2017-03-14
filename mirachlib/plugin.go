@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"reflect"
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
@@ -85,6 +86,15 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 	label := p.Label
 	t := p.Type
 	return func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if reflect.TypeOf(r).String() == "plugin.Exception" {
+					jww.TRACE.Println(r)
+					return
+				}
+				jww.ERROR.Println(r)
+			}
+		}()
 		jww.INFO.Printf("Running internal plugin: %s", label)
 		d := f()
 		if err := SendData([]byte(d), c, t); err != nil {

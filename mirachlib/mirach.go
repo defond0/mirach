@@ -10,8 +10,8 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugins/pkginfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -50,26 +50,15 @@ func CustomOut(fbMsg, err interface{}) {
 	}
 }
 
-func getAsset(cust *Customer) (*Asset, error) {
+func getAsset() (*Asset, error) {
 	asset := new(Asset)
-	err := asset.Init(cust)
+	err := asset.Init()
 	if err != nil {
 		msg := "asset initialization failed"
 		CustomOut(msg, err)
 		return nil, err
 	}
 	return asset, nil
-}
-
-func getCustomer() (*Customer, error) {
-	cust := new(Customer)
-	err := cust.Init()
-	if err != nil {
-		msg := "customer initialization failed"
-		CustomOut(msg, err)
-		return nil, err
-	}
-	return cust, nil
 }
 
 func handleCommands(asset *Asset) {
@@ -148,33 +137,29 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 }
 
 // PrepResources set up requirements and returns nodes.
-func PrepResources() (*Customer, *Asset, error) {
+func PrepResources() (*Asset, error) {
 	var err error
 	configureLogging()
 	confDirs, err = util.GetConfDirs()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	userConfDir, sysConfDir = confDirs[1], confDirs[2]
 	_, err = util.GetConfig(confDirs)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	cust, err := getCustomer()
+	asset, err := getAsset()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	asset, err := getAsset(cust)
-	if err != nil {
-		return nil, nil, err
-	}
-	return cust, asset, nil
+	return asset, nil
 }
 
 // RunLoop begins the long running portions of the application.
 // This function will run indefinitely. It creates and manages the cron scheduler.
 // It also calls for the initialization of clients and signal channels.
-func RunLoop(cust *Customer, asset *Asset) {
+func RunLoop(asset *Asset) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
 	cron := cron.New()
@@ -202,10 +187,10 @@ func SetLogLevel(level string) error {
 
 // Start is the main entry for the mirachlib.
 func Start() error {
-	cust, asset, err := PrepResources()
+	asset, err := PrepResources()
 	if err != nil {
 		return err
 	}
-	RunLoop(cust, asset)
+	RunLoop(asset)
 	return nil
 }

@@ -46,7 +46,6 @@ func TestDockerString(t *testing.T) {
 					Running:     true,
 				},
 			}
-
 		},
 		mockString: ogD.String,
 	}

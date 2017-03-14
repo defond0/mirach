@@ -22,24 +22,40 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
+	cust       *Customer
 	cmdHandler mqtt.MessageHandler
 	cmdMsg     chan CmdMsg // channel receiving command messages
 }
 
+func getCustomer() (*Customer, error) {
+	cust := new(Customer)
+	err := cust.Init()
+	if err != nil {
+		msg := "customer initialization failed"
+		CustomOut(msg, err)
+		return nil, err
+	}
+	return cust, nil
+}
+
 // Init initializes an Asset MirachNode.
-func (a *Asset) Init(c *Customer) error {
+func (a *Asset) Init() error {
 	var err error
+	a.cust, err = getCustomer()
+	if err != nil {
+		return err
+	}
 	a.id = viper.GetString("asset.id")
 	if a.id == "" {
 		a.id = readAssetID()
 		viper.Set("asset.id", a.id)
 		err = viper.WriteConfig()
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
-	if !a.CheckRegistration(c) {
-		err := a.Register(c)
+	if !a.CheckRegistration(a.cust) {
+		err := a.Register(a.cust)
 		if err != nil {
 			return err
 		}
@@ -72,7 +88,7 @@ func (a *Asset) Init(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	a.client, err = NewClient(ca, a.privKey, a.cert, c.id+":"+a.id)
+	a.client, err = NewClient(ca, a.privKey, a.cert, a.cust.id+":"+a.id)
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
@@ -85,7 +101,7 @@ func (a *Asset) Init(c *Customer) error {
 		}
 		a.cmdMsg <- res
 	}
-	path := fmt.Sprintf("mirach/cmd/%s/%s", c.id, a.id)
+	path := fmt.Sprintf("mirach/cmd/%s/%s", a.cust.id, a.id)
 	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
 	}
@@ -94,6 +110,12 @@ func (a *Asset) Init(c *Customer) error {
 
 // Register an IoT asset using a customer's client cert.
 func (a *Asset) Register(c *Customer) error {
+	ca, err := util.GetCA(confDirs)
+	if err != nil {
+		return err
+	}
+	c.client, err = NewClient(ca, c.privKey, c.cert, c.id)
+	defer c.client.Disconnect(0)
 	c.regMsg = make(chan RegMsg, 1)
 	c.regHandler = func(client mqtt.Client, msg mqtt.Message) {
 		res := RegMsg{}
@@ -111,7 +133,7 @@ func (a *Asset) Register(c *Customer) error {
 	if subToken := c.client.Subscribe(path, 1, c.regHandler); subToken.Wait() && subToken.Error() != nil {
 		return subToken.Error()
 	}
-	timeoutCh := util.Timeout(10 * time.Second)
+	timeoutCh := util.Timeout(15 * time.Second)
 	select {
 	case res := <-c.regMsg:
 		keyPath := filepath.Join(sysConfDir, "asset", "keys")
