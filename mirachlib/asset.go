@@ -43,7 +43,6 @@ func getCustomer() (*Customer, error) {
 func (a *Asset) Init() error {
 	var err error
 	a.cloudProvider, _ = util.WhereAmI()
-	fmt.Println(a.cloudProvider)
 	a.cust, err = getCustomer()
 	if err != nil {
 		return err
@@ -93,6 +92,7 @@ func (a *Asset) Init() error {
 	}
 	a.client, err = NewClient(ca, a.privKey, a.cert, a.cust.id+":"+a.id)
 	if err != nil {
+		fmt.Println(err)
 		return errors.New("asset client connection failed")
 	}
 	a.cmdMsg = make(chan CmdMsg, 1)
@@ -164,12 +164,15 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 	} else {
 		a.privKeyPath, err = util.FindInDirs(filepath.Join("asset", "keys", "private.pem.key"), confDirs)
 		if err != nil {
+			fmt.Println(err)
 			return false
 		}
 	}
-	if exists, _ := util.Exists(a.privKeyPath); !exists {
+	if exists, err := util.Exists(a.privKeyPath); !exists {
+		fmt.Println(err)
 		return false
 	}
+	fmt.Println(a.privKeyPath)
 	jww.DEBUG.Println("asset already registered when checked")
 	return true
 }
