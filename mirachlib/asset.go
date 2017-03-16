@@ -22,9 +22,10 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
-	cust       *Customer
-	cmdHandler mqtt.MessageHandler
-	cmdMsg     chan CmdMsg // channel receiving command messages
+	cloudProvider string
+	cust          *Customer
+	cmdHandler    mqtt.MessageHandler
+	cmdMsg        chan CmdMsg // channel receiving command messages
 }
 
 func getCustomer() (*Customer, error) {
@@ -41,6 +42,8 @@ func getCustomer() (*Customer, error) {
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
 	var err error
+	a.cloudProvider, _ = util.WhereAmI()
+	fmt.Println(a.cloudProvider)
 	a.cust, err = getCustomer()
 	if err != nil {
 		return err
