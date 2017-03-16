@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -173,35 +172,30 @@ func Timeout(d time.Duration) <-chan bool {
 // if they do not use a cloud provider in the following list:
 //       aws
 func WhereAmI() (string, error) {
-	if IAmInAws() {
-		return "aws", nil
+	if ans, err := IAmInAws(); ans {
+		return "aws", err
 	}
-	return "homegrown", errors.New("Cloud Provider not in ['aws']")
+	return "none", nil
 }
 
 // IAmInAws returns a bool, is mirach in aws?
-func IAmInAws() bool {
+func IAmInAws() (bool, error) {
 	res, err := http.Get("http://169.254.169.254/latest/meta-data/instance-id")
 	if err != nil {
-		fmt.Println(err)
+		return false, nil
 	}
-	defer func() {
-		err := res.Body.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
+	defer res.Body.Close()
 	if res.StatusCode == 200 { // OK
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			fmt.Println(err)
+			return false, err
 		}
 		// this will match instances ids we could force them to be i-(string of exeactly 17 characters)
 		// if they get longer like they have had a history of doing this will continue to work, essentially
 		// saying that they must be at least as long as they are currently.
 		matched, err := regexp.MatchString("i-[[:alnum:]]{17}", string(bodyBytes))
-		return matched
+		return matched, err
 	}
-	return false
+	return false, err
 
 }
