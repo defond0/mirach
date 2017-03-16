@@ -179,6 +179,7 @@ func WhereAmI() (string, error) {
 	return "homegrown", errors.New("Cloud Provider not in ['aws']")
 }
 
+// IAmInAws returns a bool, is mirach in aws?
 func IAmInAws() bool {
 	res, err := http.Get("http://169.254.169.254/latest/meta-data/instance-id")
 	if err != nil {
