@@ -53,6 +53,6 @@ func init() {
 	MirachCmd.AddCommand(pkginfoCmd)
 	pkginfoCmd.Flags().StringVarP(&pkgInfoGroup, "infogroup", "i", "all",
 		"pkginfo group to check: available, available_security, installed")
-
+	MirachCmd.AddCommand(envinfoCmd)
 	MirachCmd.AddCommand(versionCmd)
 }

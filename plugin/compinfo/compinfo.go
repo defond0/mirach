@@ -17,12 +17,6 @@ var Exceptions = []string{
 	docker.ErrDockerNotAvailable.Error(),
 }
 
-// InfoGroup is an interface for getting data and marshaling to json.
-type InfoGroup interface {
-	GetInfo()
-	String() string
-}
-
 // Docker contains information about Docker containers.
 type Docker struct {
 	IDs  []string `json:"container_ids"`

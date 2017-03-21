@@ -3,7 +3,6 @@
 package pkginfo
 
 import (
-	"fmt"
 	"testing"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
@@ -47,7 +46,6 @@ func TestKbStatusGetString(t *testing.T) {
 	ogKb := new(KBStatus)
 	mockKb := &MockInfoGroup{
 		mockGetInfo: func() {
-			fmt.Println("Get mock")
 			ogKb.Articles = testInfo
 		},
 		mockString: ogKb.String,
@@ -92,26 +90,25 @@ func TestPkgStatusGetString(t *testing.T) {
 			Security: true,
 		},
 	}
-	ogKb := new(PkgStatus)
-	mockKb := &MockInfoGroup{
+	ogPkgs := new(PkgStatus)
+	mockPkgs := &MockInfoGroup{
 		mockGetInfo: func() {
-			fmt.Println("Get mock")
-			ogKb.Packages = testInfo
+			ogPkgs.Packages = testInfo
 		},
-		mockString: ogKb.String,
+		mockString: ogPkgs.String,
 	}
-	mockKb.GetInfo()
-	newKb := new(PkgStatus)
-	if err := json.Unmarshal([]byte(mockKb.String()), &newKb); err != nil {
+	mockPkgs.GetInfo()
+	newPkgs := new(PkgStatus)
+	if err := json.Unmarshal([]byte(mockPkgs.String()), &newPkgs); err != nil {
 		t.Error("can't unmarshall pkgs")
 	}
-	if !(newKb.Packages["available"][0] == ogKb.Packages["available"][0]) {
+	if !(newPkgs.Packages["available"][0] == ogPkgs.Packages["available"][0]) {
 		t.Error("available pkgs don't match")
 	}
-	if !(newKb.Packages["available_security"][0] == ogKb.Packages["available_security"][0]) {
+	if !(newPkgs.Packages["available_security"][0] == ogPkgs.Packages["available_security"][0]) {
 		t.Error("available_security pkgs don't match")
 	}
-	if !(newKb.Packages["installed"][0] == ogKb.Packages["installed"][0]) {
+	if !(newPkgs.Packages["installed"][0] == ogPkgs.Packages["installed"][0]) {
 		t.Error("installed pkgs don't match")
 	}
 

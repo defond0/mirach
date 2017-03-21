@@ -5,3 +5,9 @@
 // create custom exceptions so that callers can behave differently in expected
 // conditions.
 package plugin
+
+// InfoGroup is an interface for getting data and marshaling to json.
+type InfoGroup interface {
+	GetInfo()
+	String() string
+}
