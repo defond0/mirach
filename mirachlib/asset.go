@@ -24,7 +24,7 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
-	cloudProvider plugin.InfoGroup
+	env plugin.InfoGroup
 
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
@@ -45,7 +45,7 @@ func getCustomer() (*Customer, error) {
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
 	var err error
-	a.cloudProvider = envinfo.GetInfo()
+	a.env = envinfo.GetInfo()
 	a.cust, err = getCustomer()
 	if err != nil {
 		return err
@@ -166,15 +166,12 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 	} else {
 		a.privKeyPath, err = util.FindInDirs(filepath.Join("asset", "keys", "private.pem.key"), confDirs)
 		if err != nil {
-			fmt.Println(err)
 			return false
 		}
 	}
 	if exists, err := util.Exists(a.privKeyPath); !exists {
-		fmt.Println(err)
 		return false
 	}
-	fmt.Println(a.privKeyPath)
 	jww.DEBUG.Println("asset already registered when checked")
 	return true
 }
