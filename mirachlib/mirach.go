@@ -11,6 +11,7 @@ import (
 	"os/signal"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
@@ -126,6 +127,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 			CustomOut(msg, err)
 		}
 	}
+
 	for _, v := range internalPlugins {
 		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
 		err := cron.AddFunc(v.Schedule, v.Run(client))
@@ -167,6 +169,11 @@ func RunLoop(asset *Asset) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
 	cron := cron.New()
+	if envinfo.Env == nil {
+		envinfo.Env = new(envinfo.EnvInfoGroup)
+		envinfo.Env.GetInfo()
+		fmt.Println(envinfo.Env)
+	}
 	handlePlugins(asset.client, cron)
 	handleCommands(asset)
 	for _ = range signalChannel {

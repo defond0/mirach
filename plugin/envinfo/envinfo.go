@@ -12,6 +12,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+var Env *EnvInfoGroup
+
 type EnvInfoGroup struct {
 	CloudProvider     string            `json:"provider"`
 	CloudProviderInfo map[string]string `json:"info"`
@@ -39,7 +41,7 @@ func IAmInAws() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// this will match instances ids we could force them to be i-(string of exeactly 17 characters)
+	// this will match instances ids we could force them to be i-(string of at least 8 characters)
 	// if they get longer like they have had a history of doing this will continue to work, essentially
 	// saying that they must be at least as long as they are currently.
 	matched, err := regexp.MatchString("^i-[[:alnum:]]{8,}$", id)
