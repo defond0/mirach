@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"gitlab.eng.cleardata.com/dash/mirach/plugin"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -22,10 +24,11 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
-	cloudProvider string
-	cust          *Customer
-	cmdHandler    mqtt.MessageHandler
-	cmdMsg        chan CmdMsg // channel receiving command messages
+	cloudProvider plugin.InfoGroup
+
+	cust       *Customer
+	cmdHandler mqtt.MessageHandler
+	cmdMsg     chan CmdMsg // channel receiving command messages
 }
 
 func getCustomer() (*Customer, error) {
@@ -42,7 +45,7 @@ func getCustomer() (*Customer, error) {
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
 	var err error
-	a.cloudProvider, _ = util.WhereAmI()
+	a.cloudProvider = envinfo.GetInfo()
 	a.cust, err = getCustomer()
 	if err != nil {
 		return err
@@ -92,7 +95,6 @@ func (a *Asset) Init() error {
 	}
 	a.client, err = NewClient(ca, a.privKey, a.cert, a.cust.id+":"+a.id)
 	if err != nil {
-		fmt.Println(err)
 		return errors.New("asset client connection failed")
 	}
 	a.cmdMsg = make(chan CmdMsg, 1)
