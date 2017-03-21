@@ -169,7 +169,7 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 			return false
 		}
 	}
-	if exists, err := util.Exists(a.privKeyPath); !exists {
+	if exists, _ := util.Exists(a.privKeyPath); !exists {
 		return false
 	}
 	jww.DEBUG.Println("asset already registered when checked")
