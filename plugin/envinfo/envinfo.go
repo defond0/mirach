@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugin"
 
@@ -19,20 +20,20 @@ type EnvInfoGroup struct {
 	CloudProviderInfo map[string]string `json:"info"`
 }
 
-func hitAwsMagicIp(path string) (string, error) {
+func hitAwsMagicIp(path string) ([]byte, error) {
 	res, err := http.Get(fmt.Sprintf("http://169.254.169.254/latest/meta-data/%s", path))
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode == 200 { // OK
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return "", err
+			return []byte{}, err
 		}
-		return string(bodyBytes), err
+		return bodyBytes, err
 	}
-	return "", err
+	return []byte{}, err
 }
 
 // IAmInAws returns a bool, is mirach in aws?
@@ -44,7 +45,7 @@ func IAmInAws() (bool, error) {
 	// this will match instances ids we could force them to be i-(string of at least 8 characters)
 	// if they get longer like they have had a history of doing this will continue to work, essentially
 	// saying that they must be at least as long as they are currently.
-	matched, err := regexp.MatchString("^i-[[:alnum:]]{8,}$", id)
+	matched, err := regexp.MatchString("^i-[[:alnum:]]{8,}$", string(id))
 	if err != nil {
 		return false, err
 	}
@@ -66,10 +67,21 @@ func (e *EnvInfoGroup) getAwsInfo() error {
 	if err != nil {
 		return err
 	}
+	var iamInfoMap map[string]interface{}
+	iamInfo, err := hitAwsMagicIp("iam/info")
+	if err != nil {
+		return err
+	}
+	json.Unmarshal(iamInfo, &iamInfoMap)
+	if err != nil {
+		return err
+	}
+	accountId := strings.Split(iamInfoMap["InstanceProfileArn"].(string), ":")
 	e.CloudProvider = "aws"
 	e.CloudProviderInfo = map[string]string{}
-	e.CloudProviderInfo["instance-id"] = instId
-	e.CloudProviderInfo["instance-type"] = instType
+	e.CloudProviderInfo["instance-id"] = string(instId)
+	e.CloudProviderInfo["account-id"] = string(accountId[4])
+	e.CloudProviderInfo["instance-type"] = string(instType)
 	return nil
 }
 
