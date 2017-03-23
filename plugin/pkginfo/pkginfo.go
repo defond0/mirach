@@ -17,7 +17,7 @@ type PkgStatus struct {
 
 // KBStatus represents the OS and map of list of KBArticle.
 type KBStatus struct {
-	Articles map[string][]parsers.KBArticle `json:"articles"`
+	Articles map[string][]parsers.KBArticle `json:"packages"`
 }
 
 //GetInfo fill in the package status object with info.
