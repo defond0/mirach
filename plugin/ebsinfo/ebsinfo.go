@@ -3,6 +3,7 @@ package ebsinfo
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -18,11 +19,20 @@ type EbsInfoGroup struct {
 }
 
 type Volume struct {
-	Encrypted          bool   `json:"encrypted"`
-	Size               int    `json:"size"`
-	CreateTime         string `json:"created"`
-	VolumeID           string `json:"volume_id"`
-	AttachedInstanceID string `json:"instance_id"`
+	ID          string       `json:"volume_id"`
+	Type        string       `json:"type"`
+	Size        int64        `json:"size"`
+	CreateTime  string       `json:"created"`
+	Encrypted   bool         `json:"encrypted"`
+	SnapshotID  string       `json:"snapshotid"`
+	Attachments []Attachment `json:"attachments"`
+}
+
+type Attachment struct {
+	AttachTime string `json:"attach_time"`
+	Device     string `json:"device"`
+	InstanceID string `json:"instance_id"`
+	State      string `json:"state"`
 }
 
 // use instance id off of env info if in aws describe volumes
@@ -41,11 +51,14 @@ func (e *EbsInfoGroup) GetInfo() {
 		)
 		fmt.Println(err)
 	}
-
-	fmt.Println(instance)
-	fmt.Println("here")
 	volumes, err := e.getInstanceVolumes(svc, instance)
-	fmt.Println(volumes)
+	if err != nil {
+		jww.ERROR.Println(
+			"ebsinfo plugin encountered an error describing volumes, ensure that it has permissions to perform ec2.DescribeVolumes",
+		)
+		fmt.Println(err)
+	}
+	e.Volumes = volumes
 }
 
 func (e *EbsInfoGroup) String() string {
@@ -69,8 +82,30 @@ func (e *EbsInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) 
 		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(res)
-	return []Volume{}, nil
+	volumes := []Volume{}
+	for _, vol := range res.Volumes {
+		attachments := []Attachment{}
+		for _, attachment := range vol.Attachments {
+			att := Attachment{
+				AttachTime: strconv.Itoa(int(attachment.AttachTime.UTC().Unix())),
+				InstanceID: *attachment.InstanceId,
+				State:      *attachment.State,
+				Device:     *attachment.Device,
+			}
+			attachments = append(attachments, att)
+		}
+		volume := Volume{
+			Attachments: attachments,
+			ID:          *vol.VolumeId,
+			Type:        *vol.VolumeType,
+			Encrypted:   *vol.Encrypted,
+			Size:        *vol.Size,
+			SnapshotID:  *vol.SnapshotId,
+			CreateTime:  string(vol.CreateTime.UTC().Unix()),
+		}
+		volumes = append(volumes, volume)
+	}
+	return volumes, nil
 }
 
 // return this ec2
