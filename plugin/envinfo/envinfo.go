@@ -59,7 +59,7 @@ func (e *EnvInfoGroup) getNullInfo() error {
 }
 
 func (e *EnvInfoGroup) getAwsInfo() error {
-	instId, err := hitAwsMagicIp("instance-id")
+	instID, err := hitAwsMagicIp("instance-id")
 	if err != nil {
 		return err
 	}
@@ -72,16 +72,25 @@ func (e *EnvInfoGroup) getAwsInfo() error {
 	if err != nil {
 		return err
 	}
-	json.Unmarshal(iamInfo, &iamInfoMap)
+	err = json.Unmarshal(iamInfo, &iamInfoMap)
 	if err != nil {
 		return err
 	}
-	accountId := strings.Split(iamInfoMap["InstanceProfileArn"].(string), ":")
+	accountID := strings.Split(iamInfoMap["InstanceProfileArn"].(string), ":")[4]
+
+	az, err := hitAwsMagicIp("placement/availability-zone")
+	if err != nil {
+		return err
+	}
+	regionExp := regexp.MustCompile("^[[:alpha:]]+-[[:alpha:]]+-[[:digit:]]+")
+	region := regionExp.Find(az)
 	e.CloudProvider = "aws"
 	e.CloudProviderInfo = map[string]string{}
-	e.CloudProviderInfo["instance-id"] = string(instId)
-	e.CloudProviderInfo["account-id"] = string(accountId[4])
+	e.CloudProviderInfo["instance-id"] = string(instID)
+	e.CloudProviderInfo["account-id"] = string(accountID)
 	e.CloudProviderInfo["instance-type"] = string(instType)
+	e.CloudProviderInfo["availablity-zone"] = string(az)
+	e.CloudProviderInfo["region"] = string(region)
 	return nil
 }
 
