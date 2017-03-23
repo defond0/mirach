@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"gitlab.eng.cleardata.com/dash/mirach/mirachlib"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	"github.com/spf13/cobra"
@@ -42,6 +43,10 @@ var MirachCmd = &cobra.Command{
 }
 
 func init() {
+	if envinfo.Env == nil {
+		envinfo.Env = new(envinfo.EnvInfoGroup)
+		envinfo.Env.GetInfo()
+	}
 	MirachCmd.PersistentFlags().StringVarP(&level, "loglevel", "l", "error",
 		"log level: error, info, trace")
 	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
@@ -54,5 +59,6 @@ func init() {
 	pkginfoCmd.Flags().StringVarP(&pkgInfoGroup, "infogroup", "i", "all",
 		"pkginfo group to check: available, available_security, installed")
 	MirachCmd.AddCommand(envinfoCmd)
+	MirachCmd.AddCommand(ebsinfoCmd)
 	MirachCmd.AddCommand(versionCmd)
 }
