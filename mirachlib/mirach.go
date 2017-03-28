@@ -11,6 +11,7 @@ import (
 	"os/signal"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
@@ -105,6 +106,17 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 			Type:     "pkginfo",
 		},
 	}
+	if envinfo.Env.CloudProvider == "aws" {
+		AWSPlugins := []InternalPlugin{
+			{
+				Label:    "ebsinfo",
+				Schedule: "@daily",
+				StrFunc:  ebsinfo.String,
+				Type:     "ebsinfo",
+			},
+		}
+		internalPlugins = append(internalPlugins, AWSPlugins...)
+	}
 	cron.Start()
 	for k, v := range externalPlugins {
 		// Loop over internal plugins to check name collisions.
@@ -172,7 +184,6 @@ func RunLoop(asset *Asset) {
 	if envinfo.Env == nil {
 		envinfo.Env = new(envinfo.EnvInfoGroup)
 		envinfo.Env.GetInfo()
-		fmt.Println(envinfo.Env)
 	}
 	handlePlugins(asset.client, cron)
 	handleCommands(asset)
