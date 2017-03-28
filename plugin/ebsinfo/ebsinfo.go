@@ -2,7 +2,6 @@ package ebsinfo
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,11 +12,12 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 )
 
-type EbsInfoGroup struct {
-	// Volumes
+//EBSInfoGroup has info on this instances ebs volumes
+type EBSInfoGroup struct {
 	Volumes []Volume
 }
 
+//Volume pertinent information about an ebs volume
 type Volume struct {
 	ID          string       `json:"volume_id"`
 	Type        string       `json:"type"`
@@ -28,6 +28,7 @@ type Volume struct {
 	Attachments []Attachment `json:"attachments"`
 }
 
+//Attachment describes a historic attachment to an instance
 type Attachment struct {
 	AttachTime string `json:"attach_time"`
 	Device     string `json:"device"`
@@ -35,8 +36,8 @@ type Attachment struct {
 	State      string `json:"state"`
 }
 
-// use instance id off of env info if in aws describe volumes
-func (e *EbsInfoGroup) GetInfo() {
+//GetInfo use instance id off of env info if in aws describe volumes
+func (e *EBSInfoGroup) GetInfo() {
 	instanceID := envinfo.Env.CloudProviderInfo["instance-id"]
 	region := envinfo.Env.CloudProviderInfo["region"]
 	sess, err := session.NewSession()
@@ -49,25 +50,23 @@ func (e *EbsInfoGroup) GetInfo() {
 		jww.ERROR.Println(
 			"ebsinfo plugin encountered an error describing instances, ensure that it has permissions to perform ec2.DescribeInstances",
 		)
-		fmt.Println(err)
 	}
 	volumes, err := e.getInstanceVolumes(svc, instance)
 	if err != nil {
 		jww.ERROR.Println(
 			"ebsinfo plugin encountered an error describing volumes, ensure that it has permissions to perform ec2.DescribeVolumes",
 		)
-		fmt.Println(err)
 	}
 	e.Volumes = volumes
 }
 
-func (e *EbsInfoGroup) String() string {
+//String marshal EBSInfoGroup to string and return
+func (e *EBSInfoGroup) String() string {
 	s, _ := json.Marshal(e)
 	return string(s)
 }
 
-// get the volumes on this ec2
-func (e *EbsInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) ([]Volume, error) {
+func (e *EBSInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) ([]Volume, error) {
 	volumeIDs := []*string{}
 	for _, bdm := range instance.BlockDeviceMappings {
 		volumeID := bdm.Ebs.VolumeId
@@ -79,7 +78,6 @@ func (e *EbsInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) 
 		},
 	)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	volumes := []Volume{}
@@ -108,8 +106,7 @@ func (e *EbsInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) 
 	return volumes, nil
 }
 
-// return this ec2
-func (e *EbsInfoGroup) getEc2Instance(svc *ec2.EC2, instanceID string) (*ec2.Instance, error) {
+func (e *EBSInfoGroup) getEc2Instance(svc *ec2.EC2, instanceID string) (*ec2.Instance, error) {
 	instances := []*string{&instanceID}
 	res, err := svc.DescribeInstances(
 		&ec2.DescribeInstancesInput{
@@ -122,15 +119,16 @@ func (e *EbsInfoGroup) getEc2Instance(svc *ec2.EC2, instanceID string) (*ec2.Ins
 	return res.Reservations[0].Instances[0], nil
 }
 
-//get info
+//GetInfo return a full loaded EBSInfoGroup
 func GetInfo() plugin.InfoGroup {
-	info := new(EbsInfoGroup)
+	info := new(EBSInfoGroup)
 	info.GetInfo()
 	return info
 }
 
+//String return a string of a full loaded EBSInfoGroup
 func String() string {
-	info := new(EbsInfoGroup)
+	info := new(EBSInfoGroup)
 	info.GetInfo()
 	return info.String()
 }
