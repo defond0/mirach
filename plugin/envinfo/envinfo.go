@@ -13,8 +13,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 )
 
+// EnvInfoGroup holds information about a given cloud provider
 var Env *EnvInfoGroup
 
+// EnvInfoGroup holds information about a given cloud provider
 type EnvInfoGroup struct {
 	CloudProvider     string            `json:"provider"`
 	CloudProviderInfo map[string]string `json:"info"`
@@ -94,11 +96,13 @@ func (e *EnvInfoGroup) getAwsInfo() error {
 	return nil
 }
 
+// String returns a new string representation of EnvInfoGroup
 func (e *EnvInfoGroup) String() string {
 	s, _ := json.Marshal(e)
 	return string(s)
 }
 
+// GetInfo populates EnvInfoGroup with relevant data.
 func (e *EnvInfoGroup) GetInfo() {
 	if ans, _ := IAmInAws(); ans {
 		e.getAwsInfo()
@@ -109,12 +113,14 @@ func (e *EnvInfoGroup) GetInfo() {
 	}
 }
 
+// GetInfo create a new EnvInfoGroup and returns it
 func GetInfo() plugin.InfoGroup {
 	info := new(EnvInfoGroup)
 	info.GetInfo()
 	return info
 }
 
+// String creates a new EnvInfoGroup and return's string representation
 func String() string {
 	info := new(EnvInfoGroup)
 	info.GetInfo()

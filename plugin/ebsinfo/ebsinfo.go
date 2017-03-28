@@ -12,12 +12,12 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 )
 
-//EBSInfoGroup has info on this instances ebs volumes
+// EBSInfoGroup has info on this instances ebs volumes
 type EBSInfoGroup struct {
 	Volumes []Volume
 }
 
-//Volume pertinent information about an ebs volume
+// Volume pertinent information about an ebs volume
 type Volume struct {
 	ID          string       `json:"volume_id"`
 	Type        string       `json:"type"`
@@ -28,7 +28,7 @@ type Volume struct {
 	Attachments []Attachment `json:"attachments"`
 }
 
-//Attachment describes a historic attachment to an instance
+// Attachment describes a historic attachment to an instance
 type Attachment struct {
 	AttachTime string `json:"attach_time"`
 	Device     string `json:"device"`
@@ -36,7 +36,7 @@ type Attachment struct {
 	State      string `json:"state"`
 }
 
-//GetInfo use instance id off of env info if in aws describe volumes
+// GetInfo use instance id off of env info if in aws describe volumes
 func (e *EBSInfoGroup) GetInfo() {
 	instanceID := envinfo.Env.CloudProviderInfo["instance-id"]
 	region := envinfo.Env.CloudProviderInfo["region"]
@@ -60,7 +60,7 @@ func (e *EBSInfoGroup) GetInfo() {
 	e.Volumes = volumes
 }
 
-//String marshal EBSInfoGroup to string and return
+// String marshal EBSInfoGroup to string and return
 func (e *EBSInfoGroup) String() string {
 	s, _ := json.Marshal(e)
 	return string(s)
@@ -119,14 +119,14 @@ func (e *EBSInfoGroup) getEc2Instance(svc *ec2.EC2, instanceID string) (*ec2.Ins
 	return res.Reservations[0].Instances[0], nil
 }
 
-//GetInfo return a full loaded EBSInfoGroup
+// GetInfo return a full loaded EBSInfoGroup
 func GetInfo() plugin.InfoGroup {
 	info := new(EBSInfoGroup)
 	info.GetInfo()
 	return info
 }
 
-//String return a string of a full loaded EBSInfoGroup
+// String return a string of a full loaded EBSInfoGroup
 func String() string {
 	info := new(EBSInfoGroup)
 	info.GetInfo()
