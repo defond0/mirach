@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -24,7 +22,6 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
-	env plugin.InfoGroup
 
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
@@ -45,7 +42,6 @@ func getCustomer() (*Customer, error) {
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
 	var err error
-	a.env = envinfo.GetInfo()
 	a.cust, err = getCustomer()
 	if err != nil {
 		return err
