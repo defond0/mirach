@@ -53,20 +53,20 @@ var testInfo = []Volume{
 	},
 }
 
-func TestEbsInfoGetString(t *testing.T) {
-	ogEbsInfo := new(EbsInfoGroup)
-	MockEbsInfoGroup := &MockInfoGroup{
+func TestEBSInfoGetString(t *testing.T) {
+	ogEBSInfo := new(EBSInfoGroup)
+	MockEBSInfoGroup := &MockInfoGroup{
 		mockGetInfo: func() {
-			ogEbsInfo.Volumes = testInfo
+			ogEBSInfo.Volumes = testInfo
 		},
-		mockString: ogEbsInfo.String,
+		mockString: ogEBSInfo.String,
 	}
-	newEbsInfo := new(EbsInfoGroup)
-	if err := json.Unmarshal([]byte(MockEbsInfoGroup.String()), &newEbsInfo); err != nil {
-		t.Error("can't unmarshall EbsInfo")
+	newEBSInfo := new(EBSInfoGroup)
+	if err := json.Unmarshal([]byte(MockEBSInfoGroup.String()), &newEBSInfo); err != nil {
+		t.Error("can't unmarshall EBSInfo")
 	}
-	for i, vol := range newEbsInfo.Volumes {
-		if !(vol.ID == ogEbsInfo.Volumes[i].ID) {
+	for i, vol := range newEBSInfo.Volumes {
+		if !(vol.ID == ogEBSInfo.Volumes[i].ID) {
 			t.Error("Volumes do not match")
 		}
 	}
