@@ -51,20 +51,18 @@ func pipeline(cmds ...*exec.Cmd) (pipeLineOutput, collectedStandardError []byte,
 }
 
 //Expects []bytes representing lines of pkgname version
-func parsePacakgesFromBytes(b []byte, security bool) ([]LinuxPackage, error) {
-	pkgs := []LinuxPackage{}
+func parsePacakgesFromBytes(b []byte, security bool) (map[string]LinuxPackage, error) {
+	pkgs := map[string]LinuxPackage{}
 	name, _ := regexp.Compile("[^\\s]+")
 	version, _ := regexp.Compile("\\s(.*)")
 	lines := strings.Split(string(b), "\n")
 	for _, line := range lines {
 		if name.MatchString(line) {
-			pkgs = append(pkgs,
-				LinuxPackage{
-					Name:     name.FindString(line),
-					Version:  strings.Trim(version.FindString(line), "[ ]"),
-					Security: security,
-				},
-			)
+			pkgs[name.FindString(line)] = LinuxPackage{
+				name:     name.FindString(line),
+				Version:  strings.Trim(version.FindString(line), "[ ]"),
+				Security: security,
+			}
 		}
 	}
 	return pkgs, nil
