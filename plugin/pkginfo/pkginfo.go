@@ -12,12 +12,12 @@ import (
 // PkgStatus represents the OS and map of list of LinuxPackage.
 type PkgStatus struct {
 	OS       string
-	Packages map[string][]parsers.LinuxPackage `json:"pkg_info"`
+	Packages map[string]map[string]parsers.LinuxPackage `json:"pkg_info"`
 }
 
 // KBStatus represents the OS and map of list of KBArticle.
 type KBStatus struct {
-	Articles map[string][]parsers.KBArticle `json:"pkg_info"`
+	Articles map[string]map[string]parsers.KBArticle `json:"pkg_info"`
 }
 
 //GetInfo fill in the package status object with info.

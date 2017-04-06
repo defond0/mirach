@@ -6,9 +6,9 @@ import (
 )
 
 // GetAptDpkgPkgs creates map of available, installed and available security packages from aptitude and dpkg as well as a list of errors that occurred generating that list. grep returns exit status 1 when it gets no match, errors like that are fine
-func GetAptDpkgPkgs() (map[string][]LinuxPackage, []error) {
+func GetAptDpkgPkgs() (map[string]map[string]LinuxPackage, []error) {
 	errors := []error{}
-	out := make(map[string][]LinuxPackage)
+	out := make(map[string]map[string]LinuxPackage)
 	avail, err := getAptAvailablePackages()
 	if err != nil {
 		errors = append(errors, err)
@@ -29,7 +29,7 @@ func GetAptDpkgPkgs() (map[string][]LinuxPackage, []error) {
 	return out, errors
 }
 
-func getDpkgInstalledPackages() ([]LinuxPackage, error) {
+func getDpkgInstalledPackages() (map[string]LinuxPackage, error) {
 	aptget := command("dpkg -l")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
 
@@ -40,7 +40,7 @@ func getDpkgInstalledPackages() ([]LinuxPackage, error) {
 	return parsePacakgesFromBytes(stdout, false)
 }
 
-func getAptAvailablePackages() ([]LinuxPackage, error) {
+func getAptAvailablePackages() (map[string]LinuxPackage, error) {
 	aptget := command("apt-get upgrade -qq --just-print")
 	grep := command("grep Inst")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
@@ -52,7 +52,7 @@ func getAptAvailablePackages() ([]LinuxPackage, error) {
 	return parsePacakgesFromBytes(stdout, false)
 }
 
-func getAptAvailableSecurityPackages() ([]LinuxPackage, error) {
+func getAptAvailableSecurityPackages() (map[string]LinuxPackage, error) {
 	aptget := command("apt-get upgrade -oDir::Etc::Sourcelist=/tmp/security.list -oDir::Etc::Sourceparts='-' -oDir::Etc::Vendorlist='-' -oDir::Etc::Vendorparts='-' -qq --just-print")
 	grep := command("grep Inst")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
