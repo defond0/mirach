@@ -23,7 +23,7 @@ ssh 14.1.amd64
 	// strings are ordered, and lists are ordered this is not
 	// a design feature, just happens to be they are in the list
 	// in the same order as they are passed in
-	if pkgs[0].Name != "openssl" || pkgs[0].Version != "12.2.amd64" || pkgs[1].Name != "ssh" || pkgs[1].Version != "14.1.amd64" || pkgs[0].Security || pkgs[1].Security {
+	if pkgs["openssl"].name != "openssl" || pkgs["openssl"].Version != "12.2.amd64" || pkgs["ssh"].name != "ssh" || pkgs["ssh"].Version != "14.1.amd64" || pkgs["openssl"].Security || pkgs["ssh"].Security {
 		t.Error("we parsed the wrong info")
 	}
 }
