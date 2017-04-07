@@ -23,12 +23,12 @@ var testInfo = []Volume{
 		ID:         "vol-awsid",
 		Type:       "gp2",
 		Size:       8,
-		CreateTime: "0000001", //its an old ebsvolume
+		CreateTime: 1444000000,
 		Encrypted:  true,
 		SnapshotID: "snap-0909",
 		Attachments: []Attachment{
 			Attachment{
-				AttachTime: "0000001", // it was attached a long time ago
+				AttachTime: 1444000000,
 				Device:     "dev/xvda",
 				InstanceID: "i-iamaninstanceidya",
 				State:      "attached",
@@ -39,12 +39,12 @@ var testInfo = []Volume{
 		ID:         "vol-awsidother",
 		Type:       "gp2",
 		Size:       8,
-		CreateTime: "0000001", //its an old ebsvolume
+		CreateTime: 1444000000,
 		Encrypted:  true,
 		SnapshotID: "snap-0919",
 		Attachments: []Attachment{
 			Attachment{
-				AttachTime: "0000001", // it was attached a long time ago
+				AttachTime: 1444000000,
 				Device:     "dev/xvda",
 				InstanceID: "i-iamaninstanceidya",
 				State:      "attached",
