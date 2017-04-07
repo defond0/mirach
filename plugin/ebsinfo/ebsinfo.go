@@ -2,7 +2,6 @@ package ebsinfo
 
 import (
 	"encoding/json"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -14,7 +13,7 @@ import (
 
 // EBSInfoGroup has info on this instances ebs volumes
 type EBSInfoGroup struct {
-	Volumes []Volume
+	Volumes []Volume `json:"volumes"`
 }
 
 // Volume pertinent information about an ebs volume
@@ -22,15 +21,15 @@ type Volume struct {
 	ID          string       `json:"volume_id"`
 	Type        string       `json:"type"`
 	Size        int64        `json:"size"`
-	CreateTime  string       `json:"created"`
+	CreateTime  int64        `json:"created"`
 	Encrypted   bool         `json:"encrypted"`
-	SnapshotID  string       `json:"snapshotid"`
+	SnapshotID  string       `json:"snapshot_id"`
 	Attachments []Attachment `json:"attachments"`
 }
 
 // Attachment describes a historic attachment to an instance
 type Attachment struct {
-	AttachTime string `json:"attach_time"`
+	AttachTime int64  `json:"attach_time"`
 	Device     string `json:"device"`
 	InstanceID string `json:"instance_id"`
 	State      string `json:"state"`
@@ -85,7 +84,7 @@ func (e *EBSInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) 
 		attachments := []Attachment{}
 		for _, attachment := range vol.Attachments {
 			att := Attachment{
-				AttachTime: strconv.Itoa(int(attachment.AttachTime.UTC().Unix())),
+				AttachTime: attachment.AttachTime.UTC().Unix(),
 				InstanceID: *attachment.InstanceId,
 				State:      *attachment.State,
 				Device:     *attachment.Device,
@@ -99,7 +98,7 @@ func (e *EBSInfoGroup) getInstanceVolumes(svc *ec2.EC2, instance *ec2.Instance) 
 			Encrypted:   *vol.Encrypted,
 			Size:        *vol.Size,
 			SnapshotID:  *vol.SnapshotId,
-			CreateTime:  string(vol.CreateTime.UTC().Unix()),
+			CreateTime:  vol.CreateTime.UTC().Unix(),
 		}
 		volumes = append(volumes, volume)
 	}
