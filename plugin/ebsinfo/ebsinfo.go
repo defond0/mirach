@@ -13,7 +13,7 @@ import (
 
 // EBSInfoGroup has info on this instances ebs volumes
 type EBSInfoGroup struct {
-	Volumes []Volume
+	Volumes []Volume `json:"volumes"`
 }
 
 // Volume pertinent information about an ebs volume
@@ -23,7 +23,7 @@ type Volume struct {
 	Size        int64        `json:"size"`
 	CreateTime  int64        `json:"created"`
 	Encrypted   bool         `json:"encrypted"`
-	SnapshotID  string       `json:"snapshotid"`
+	SnapshotID  string       `json:"snapshot_id"`
 	Attachments []Attachment `json:"attachments"`
 }
 
