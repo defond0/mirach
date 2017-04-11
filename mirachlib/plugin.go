@@ -19,6 +19,9 @@ import (
 // ChunkSize defines the maximum size of chunks to be sent over MQTT.
 const ChunkSize = 88000
 
+// MaxChunkSize defines the threshold after which s3 presigned urls will be used.
+const MaxChunkSize = 512000
+
 // ExternalPlugin is a regularly run command that collects data.
 type ExternalPlugin struct {
 	Cmd      string `json:"cmd"`
@@ -103,9 +106,10 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 	}
 }
 
-func postData(b []byte) (string, error) {
+func PutData(b []byte) (string, error) {
 	// TODO: This will implement the push to S3.
-	return "theurl", nil
+	url, err := GetPresignedUrl()
+	return url, nil
 }
 
 // SendData sends data using one of a few methods to an MQTT broker.
@@ -116,12 +120,11 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 	msg := mqttMsg{Type: t}
 	var msgB []byte
 	switch {
-	// TODO: case when implementing large storage upload
-	// case len(b) >= 512000:
-	// 	data, err := postData(b)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	case len(b) >= MaxChunkSize:
+		data, err := PutData(b)
+		if err != nil {
+			return err
+		}
 	case len(b) >= ChunkSize:
 		n, id, sum, err := SendChunks(b, c)
 		if err != nil {
@@ -166,4 +169,8 @@ func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
 		n++
 	}
 	return n, id, sum, nil
+}
+
+func GetPresignedUrl() (string, error) {
+	return "url", nil
 }
