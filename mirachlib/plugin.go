@@ -1,11 +1,13 @@
 package mirachlib
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"reflect"
@@ -54,6 +56,12 @@ type chunksMsg struct {
 type dataMsg struct {
 	mqttMsg
 	Data json.RawMessage `json:"data"`
+}
+
+type s3Msg struct {
+	mqttMsg
+	Hash string `json:"hash"`
+	Key  string `json:"s3_key"`
 }
 
 type urlMsg struct {
@@ -113,12 +121,14 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 func SendData(b []byte, c mqtt.Client, t string) error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
-	var err error
+	// var err error
 	msg := mqttMsg{Type: t}
 	var msgB []byte
 	switch {
 	case len(b) >= MaxChunkSize:
-		err := PutData(b, c)
+		key, hash, err := PutData(b, c)
+		m := s3Msg{msg, key, hash}
+		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
@@ -133,11 +143,17 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 			return err
 		}
 	default:
-		m := dataMsg{msg, json.RawMessage(string(b))}
+		key, hash, err := PutData(b, c)
+		m := s3Msg{msg, key, hash}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
+		// m := dataMsg{msg, json.RawMessage(string(b))}
+		// msgB, err = json.Marshal(m)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 	path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
 	if err := PubWait(c, path, msgB); err != nil {
@@ -168,15 +184,32 @@ func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
 	return n, id, sum, nil
 }
 
-func PutData(b []byte, c mqtt.Client) error {
+// PutData Gets presigned url and put data to it. Return string of s3 key it has
+// been put to as well as the hash of the bytes
+func PutData(b []byte, c mqtt.Client) (string, string, error) {
 	client := &http.Client{}
 	url, err := GetPresignedUrl(c)
 	if err != nil {
-		return err
+		jww.ERROR.Println(err)
+		return "", "", err
 	}
-	return nil
+	req, err := http.NewRequest("PUT", url.URL, bytes.NewBuffer(b))
+	if err != nil {
+		jww.ERROR.Println(err)
+		return "", "", err
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		jww.ERROR.Println(err)
+		return "", "", err
+	}
+	defer res.Body.Close()
+	fmt.Println(ioutil.ReadAll(res.Body))
+	return "tasty", "test", nil
 }
 
+// PutData Gets presigned url and put data to it. Return string of s3 key it has
+// been put to as well as the hash of the bytes
 func GetPresignedUrl(c mqtt.Client) (urlMsg, error) {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
@@ -191,6 +224,7 @@ func GetPresignedUrl(c mqtt.Client) (urlMsg, error) {
 	pubToken.Wait()
 	if subToken := c.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
 		jww.ERROR.Println("Error uploading large data hunk")
+		return urlMsg{}, errors.New("Error subscribing to put route")
 	}
 	timeoutCh := util.Timeout(10 * time.Second)
 	select {
