@@ -4,9 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"reflect"
+	"time"
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
@@ -54,8 +57,8 @@ type dataMsg struct {
 }
 
 type urlMsg struct {
-	mqttMsg
 	URL string `json:"url"`
+	Key string `json:"key"`
 }
 
 // Run will run an external plugin and publishes its results.
@@ -106,12 +109,6 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 	}
 }
 
-func PutData(b []byte) (string, error) {
-	// TODO: This will implement the push to S3.
-	url, err := GetPresignedUrl()
-	return url, nil
-}
-
 // SendData sends data using one of a few methods to an MQTT broker.
 func SendData(b []byte, c mqtt.Client, t string) error {
 	custID := viper.GetString("customer.id")
@@ -121,7 +118,7 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 	var msgB []byte
 	switch {
 	case len(b) >= MaxChunkSize:
-		data, err := PutData(b)
+		err := PutData(b, c)
 		if err != nil {
 			return err
 		}
@@ -171,6 +168,35 @@ func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
 	return n, id, sum, nil
 }
 
-func GetPresignedUrl() (string, error) {
-	return "url", nil
+func PutData(b []byte, c mqtt.Client) error {
+	client := &http.Client{}
+	url, err := GetPresignedUrl(c)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetPresignedUrl(c mqtt.Client) (urlMsg, error) {
+	custID := viper.GetString("customer.id")
+	assetID := viper.GetString("asset.id")
+	urlChan := make(chan urlMsg, 1)
+	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
+		res := urlMsg{}
+		_ = json.Unmarshal(msg.Payload(), &res)
+		urlChan <- res
+	}
+	path := fmt.Sprintf("mirach/s3/put/%s/%s", custID, assetID)
+	pubToken := c.Publish(path, 1, false, "")
+	pubToken.Wait()
+	if subToken := c.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
+		jww.ERROR.Println("Error uploading large data hunk")
+	}
+	timeoutCh := util.Timeout(10 * time.Second)
+	select {
+	case res := <-urlChan:
+		return res, nil
+	case <-timeoutCh:
+		return urlMsg{}, errors.New("Timeout receiving presigned url")
+	}
 }
