@@ -60,5 +60,6 @@ func init() {
 		"pkginfo group to check: available, available_security, installed")
 	MirachCmd.AddCommand(envinfoCmd)
 	MirachCmd.AddCommand(ebsinfoCmd)
+	MirachCmd.AddCommand(licenseCmd)
 	MirachCmd.AddCommand(versionCmd)
 }
