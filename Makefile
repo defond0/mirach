@@ -9,6 +9,7 @@ VERSION := $(shell git describe --always --dirty)
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
+DOWNLOADLOC := s3://***REMOVED***/mirach
 ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
@@ -88,8 +89,9 @@ mqtt-paho-mocks:
 	mkdir .mocks
 	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/cleardata.com/mirach/.mocks/
 
-publish:
-	@echo "push to s3 at some point"
+publish: ## publish all current build archives
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADLOC)"
+	aws s3 sync $(ARCDIR)/ $(DOWNLOADLOC)/
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
