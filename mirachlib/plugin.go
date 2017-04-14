@@ -150,7 +150,6 @@ func SendData(b []byte, c mqtt.Client, t string, urlChan chan urlMsg) error {
 		}
 	}
 	path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
-	jww.ERROR.Println(string(msgB))
 	if err := PubWait(c, path, msgB); err != nil {
 		return err
 	}
