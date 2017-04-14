@@ -25,6 +25,7 @@ type Asset struct {
 
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
+	urlHandler mqtt.MessageHandler
 	cmdMsg     chan CmdMsg // channel receiving command messages
 	urlChan    chan urlMsg // channel receiving url messages
 }
@@ -94,16 +95,6 @@ func (a *Asset) Init() error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
-	a.urlChan = make(chan urlMsg, 1)
-	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
-		res := urlMsg{}
-		empty := urlMsg{}
-		_ = json.Unmarshal(msg.Payload(), &res)
-		if res != empty {
-			jww.ERROR.Println(res)
-			a.urlChan <- res
-		}
-	}
 	a.cmdMsg = make(chan CmdMsg, 1)
 	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
 		res := CmdMsg{}
@@ -116,6 +107,22 @@ func (a *Asset) Init() error {
 	path := fmt.Sprintf("mirach/cmd/%s/%s", a.cust.id, a.id)
 	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
+	}
+	custID := viper.GetString("customer.id")
+	assetID := viper.GetString("asset.id")
+	path = fmt.Sprintf("mirach/s3/put/%s/%s", custID, assetID)
+	a.urlChan = make(chan urlMsg, 1)
+	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
+		res := urlMsg{}
+		empty := urlMsg{}
+		_ = json.Unmarshal(msg.Payload(), &res)
+		if res != empty {
+			jww.ERROR.Println(res)
+			a.urlChan <- res
+		}
+	}
+	if subToken := a.client.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
+		jww.ERROR.Println("Error uploading large data hunk")
 	}
 	return nil
 }
@@ -187,17 +194,6 @@ func (a *Asset) readCmds() error {
 	go func() {
 		for {
 			msg := <-a.cmdMsg
-			CustomOut("cmd received: "+msg.Cmd, nil)
-		}
-	}()
-	CustomOut("command channel open", nil)
-	return nil
-}
-
-func (a *Asset) handleS3Puts() error {
-	go func() {
-		for {
-			msg := <-a.URLMsg
 			CustomOut("cmd received: "+msg.Cmd, nil)
 		}
 	}()
