@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"reflect"
+	"strings"
 	"time"
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
@@ -70,7 +70,7 @@ type urlMsg struct {
 }
 
 // Run will run an external plugin and publishes its results.
-func (p *ExternalPlugin) Run(c mqtt.Client) func() {
+func (p *ExternalPlugin) Run(c mqtt.Client, urlChan chan urlMsg) func() {
 	cmd := p.Cmd
 	label := p.Label
 	return func() {
@@ -88,14 +88,14 @@ func (p *ExternalPlugin) Run(c mqtt.Client) func() {
 			jww.ERROR.Println(err)
 		}
 		err = cmd.Wait()
-		if err := SendData([]byte(d), c, label); err != nil {
+		if err := SendData([]byte(d), c, label, urlChan); err != nil {
 			jww.ERROR.Println(err)
 		}
 	}
 }
 
 // Run will run an internal function and publish its results.
-func (p *InternalPlugin) Run(c mqtt.Client) func() {
+func (p *InternalPlugin) Run(c mqtt.Client, urlChan chan urlMsg) func() {
 	f := p.StrFunc
 	label := p.Label
 	t := p.Type
@@ -111,23 +111,23 @@ func (p *InternalPlugin) Run(c mqtt.Client) func() {
 		}()
 		jww.INFO.Printf("Running internal plugin: %s", label)
 		d := f()
-		if err := SendData([]byte(d), c, t); err != nil {
+		if err := SendData([]byte(d), c, t, urlChan); err != nil {
 			jww.ERROR.Println(err)
 		}
 	}
 }
 
 // SendData sends data using one of a few methods to an MQTT broker.
-func SendData(b []byte, c mqtt.Client, t string) error {
+func SendData(b []byte, c mqtt.Client, t string, urlChan chan urlMsg) error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
-	// var err error
+	var err error
 	msg := mqttMsg{Type: t}
 	var msgB []byte
 	switch {
 	case len(b) >= MaxChunkSize:
-		key, hash, err := PutData(b, c)
-		m := s3Msg{msg, key, hash}
+		key, hash, err := PutData(b, c, urlChan)
+		m := s3Msg{msg, hash, key}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
@@ -143,19 +143,14 @@ func SendData(b []byte, c mqtt.Client, t string) error {
 			return err
 		}
 	default:
-		key, hash, err := PutData(b, c)
-		m := s3Msg{msg, key, hash}
+		m := dataMsg{msg, json.RawMessage(string(b))}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
-		// m := dataMsg{msg, json.RawMessage(string(b))}
-		// msgB, err = json.Marshal(m)
-		// if err != nil {
-		// 	return err
-		// }
 	}
 	path := fmt.Sprintf("mirach/data/%s/%s", custID, assetID)
+	jww.ERROR.Println(string(msgB))
 	if err := PubWait(c, path, msgB); err != nil {
 		return err
 	}
@@ -186,14 +181,14 @@ func SendChunks(b []byte, c mqtt.Client) (int, string, string, error) {
 
 // PutData Gets presigned url and put data to it. Return string of s3 key it has
 // been put to as well as the hash of the bytes
-func PutData(b []byte, c mqtt.Client) (string, string, error) {
+func PutData(b []byte, c mqtt.Client, urlChan chan urlMsg) (string, string, error) {
 	client := &http.Client{}
-	url, err := GetPresignedUrl(c)
+	presigned, err := GetPresignedUrl(c, urlChan)
 	if err != nil {
 		jww.ERROR.Println(err)
 		return "", "", err
 	}
-	req, err := http.NewRequest("PUT", url.URL, bytes.NewBuffer(b))
+	req, err := http.NewRequest("PUT", presigned.URL, bytes.NewBuffer(b))
 	if err != nil {
 		jww.ERROR.Println(err)
 		return "", "", err
@@ -203,29 +198,24 @@ func PutData(b []byte, c mqtt.Client) (string, string, error) {
 		jww.ERROR.Println(err)
 		return "", "", err
 	}
-	defer res.Body.Close()
-	fmt.Println(ioutil.ReadAll(res.Body))
-	return "tasty", "test", nil
+	h := md5.Sum(b)
+	sum := hex.EncodeToString(h[:])
+	etag := strings.Trim(res.Header["Etag"][0], "\"")
+	if sum == etag {
+		return presigned.Key, etag, nil
+	} else {
+		e := errors.New("etag of uploaded bytes do match calculated hash")
+		panic(e)
+	}
 }
 
-// PutData Gets presigned url and put data to it. Return string of s3 key it has
-// been put to as well as the hash of the bytes
-func GetPresignedUrl(c mqtt.Client) (urlMsg, error) {
+// GetPresignedUrl will return a presigned url msg or error
+func GetPresignedUrl(c mqtt.Client, urlChan chan urlMsg) (urlMsg, error) {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
-	urlChan := make(chan urlMsg, 1)
-	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
-		res := urlMsg{}
-		_ = json.Unmarshal(msg.Payload(), &res)
-		urlChan <- res
-	}
 	path := fmt.Sprintf("mirach/s3/put/%s/%s", custID, assetID)
 	pubToken := c.Publish(path, 1, false, "")
 	pubToken.Wait()
-	if subToken := c.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
-		jww.ERROR.Println("Error uploading large data hunk")
-		return urlMsg{}, errors.New("Error subscribing to put route")
-	}
 	timeoutCh := util.Timeout(10 * time.Second)
 	select {
 	case res := <-urlChan:
