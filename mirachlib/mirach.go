@@ -74,7 +74,7 @@ func handleCommands(asset *Asset) {
 	CustomOut(msg, nil)
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.Cron) {
+func handlePlugins(client mqtt.Client, urlChan chan urlMsg, cron *cron.Cron) {
 	externalPlugins := make(map[string]ExternalPlugin)
 	err := viper.UnmarshalKey("plugins", &externalPlugins)
 	if err != nil {
@@ -133,7 +133,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 			continue
 		}
 		jww.INFO.Printf("adding plugin to cron: %s", k)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
+		err := cron.AddFunc(v.Schedule, v.Run(client, urlChan))
 		if err != nil {
 			msg := fmt.Sprintf("failed to load plugin %v", k)
 			CustomOut(msg, err)
@@ -142,7 +142,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 
 	for _, v := range internalPlugins {
 		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
+		err := cron.AddFunc(v.Schedule, v.Run(client, urlChan))
 		if err != nil {
 			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
 			CustomOut(msg, err)
@@ -185,7 +185,7 @@ func RunLoop(asset *Asset) {
 		envinfo.Env = new(envinfo.EnvInfoGroup)
 		envinfo.Env.GetInfo()
 	}
-	handlePlugins(asset.client, cron)
+	handlePlugins(asset.client, asset.urlChan, cron)
 	handleCommands(asset)
 	for _ = range signalChannel {
 		// sig is a ^c, handle it
