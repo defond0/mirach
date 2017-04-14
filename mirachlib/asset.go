@@ -117,12 +117,11 @@ func (a *Asset) Init() error {
 		empty := urlMsg{}
 		_ = json.Unmarshal(msg.Payload(), &res)
 		if res != empty {
-			jww.ERROR.Println(res)
 			a.urlChan <- res
 		}
 	}
 	if subToken := a.client.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
-		jww.ERROR.Println("Error uploading large data hunk")
+		return subToken.Error()
 	}
 	return nil
 }
