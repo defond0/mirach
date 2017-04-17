@@ -14,7 +14,9 @@ import (
 // flag variables
 var (
 	compInfoGroup string
+	incText       bool
 	level         string
+	licenseGroup  string
 	pkgInfoGroup  string
 	version       bool
 )
@@ -60,5 +62,10 @@ func init() {
 		"pkginfo group to check: available, available_security, installed")
 	MirachCmd.AddCommand(envinfoCmd)
 	MirachCmd.AddCommand(ebsinfoCmd)
+	MirachCmd.AddCommand(licenseCmd)
+	licenseCmd.Flags().BoolVarP(&incText, "include-text", "t", false,
+		"display full text for each license")
+	licenseCmd.Flags().StringVarP(&licenseGroup, "group", "g", "mirach",
+		`which licenses to display: "all", "mirach", or "other" for libraries used in mirach`)
 	MirachCmd.AddCommand(versionCmd)
 }
