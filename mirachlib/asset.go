@@ -108,9 +108,6 @@ func (a *Asset) Init() error {
 	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
 	}
-	if err := a.CycleUrlChannel(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -119,9 +116,6 @@ func (a *Asset) CycleUrlChannel() error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
 	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
-	if unSubToken := a.client.Unsubscribe(path); unSubToken.Wait() && unSubToken.Error() != nil {
-		return unSubToken.Error()
-	}
 	a.urlChan = make(chan urlMsg, 1)
 	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
 		res := urlMsg{}
