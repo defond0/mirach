@@ -26,7 +26,7 @@ type Asset struct {
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
 	urlHandler mqtt.MessageHandler
-	cmdMsg     chan CmdMsg // channel receiving command messages
+	cmdChan    chan CmdMsg // channel receiving command messages
 	urlChan    chan urlMsg // channel receiving url messages
 }
 
@@ -95,22 +95,33 @@ func (a *Asset) Init() error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
-	a.cmdMsg = make(chan CmdMsg, 1)
+	a.cmdChan = make(chan CmdMsg, 1)
 	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
 		res := CmdMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
-		a.cmdMsg <- res
+		a.cmdChan <- res
 	}
 	path := fmt.Sprintf("mirach/cmd/%s/%s", a.cust.id, a.id)
 	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
 	}
+	if err := a.CycleUrlChannel(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// CycleUrlChannel is a function to new up a subscription to s3/put/url topic
+func (a *Asset) CycleUrlChannel() error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
-	path = fmt.Sprintf("mirach/s3/put/%s/%s", custID, assetID)
+	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
+	if unSubToken := a.client.Unsubscribe(path); unSubToken.Wait() && unSubToken.Error() != nil {
+		return unSubToken.Error()
+	}
 	a.urlChan = make(chan urlMsg, 1)
 	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
 		res := urlMsg{}
@@ -192,7 +203,7 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 func (a *Asset) readCmds() error {
 	go func() {
 		for {
-			msg := <-a.cmdMsg
+			msg := <-a.cmdChan
 			CustomOut("cmd received: "+msg.Cmd, nil)
 		}
 	}()
