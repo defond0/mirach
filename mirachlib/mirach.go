@@ -88,19 +88,19 @@ func handlePlugins(asset *Asset, cron *cron.Cron) {
 		},
 		{
 			Label:    "compinfo-load",
-			Schedule: "@every 1m",
+			Schedule: "@every 5m",
 			StrFunc:  compinfo.GetLoadString,
 			Type:     "compinfo",
 		},
 		{
 			Label:    "compinfo-sys",
-			Schedule: "@every 1m",
+			Schedule: "@daily",
 			StrFunc:  compinfo.GetSysString,
 			Type:     "compinfo",
 		},
 		{
 			Label:    "pkginfo",
-			Schedule: "@every 1m",
+			Schedule: "@daily",
 			StrFunc:  pkginfo.String,
 			Type:     "pkginfo",
 		},
