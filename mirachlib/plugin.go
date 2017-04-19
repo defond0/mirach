@@ -56,12 +56,12 @@ type dataMsg struct {
 	Data json.RawMessage `json:"data"`
 }
 
-type putMsg struct {
+type putHTTPMsg struct {
 	mqttMsg
 	URL string `json:"url"`
 }
 
-type urlMsg struct {
+type getURLMsg struct {
 	URL string `json:"url"`
 }
 
@@ -125,7 +125,7 @@ func SendData(b []byte, t string, asset *Asset) error {
 	switch {
 	case len(b) >= MaxChunkedSize:
 		url, err := PutData(b, asset)
-		m := putMsg{msg, url}
+		m := putHTTPMsg{msg, url}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
@@ -197,9 +197,9 @@ func PutData(b []byte, asset *Asset) (string, error) {
 }
 
 // GetPutUrl will return a presigned url msg or error
-func GetPutUrl(asset *Asset) (urlMsg, error) {
+func GetPutUrl(asset *Asset) (getURLMsg, error) {
 	if err := asset.CycleUrlChannel(); err != nil {
-		return urlMsg{}, err
+		return getURLMsg{}, err
 	}
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
@@ -211,6 +211,6 @@ func GetPutUrl(asset *Asset) (urlMsg, error) {
 	case res := <-asset.urlChan:
 		return res, nil
 	case <-timeoutCh:
-		return urlMsg{}, errors.New("Timeout receiving presigned url")
+		return getURLMsg{}, errors.New("Timeout receiving presigned url")
 	}
 }
