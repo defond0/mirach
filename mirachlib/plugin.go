@@ -123,14 +123,14 @@ func SendData(b []byte, t string, asset *Asset) error {
 	msg := mqttMsg{Type: t, Hash: hash}
 	var msgB []byte
 	switch {
-	case len(b) >= MaxChunkedSize:
+	case len(b) > MaxChunkedSize:
 		url, err := PutData(b, asset)
 		m := putHTTPMsg{msg, url}
 		msgB, err = json.Marshal(m)
 		if err != nil {
 			return err
 		}
-	case len(b) >= MaxMQTTDataSize:
+	case len(b) > MaxMQTTDataSize:
 		n, id, err := SendChunks(b, asset)
 		if err != nil {
 			return err
