@@ -188,8 +188,7 @@ func PutData(b []byte, asset *Asset) (string, error) {
 		jww.ERROR.Println(err)
 		return "", err
 	}
-	_, err = client.Do(req)
-	if err != nil {
+	if _, err = client.Do(req); err != nil {
 		jww.ERROR.Println(err)
 		return "", err
 	}
