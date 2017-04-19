@@ -16,7 +16,6 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
@@ -74,7 +73,7 @@ func handleCommands(asset *Asset) {
 	CustomOut(msg, nil)
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.Cron) {
+func handlePlugins(asset *Asset, cron *cron.Cron) {
 	externalPlugins := make(map[string]ExternalPlugin)
 	err := viper.UnmarshalKey("plugins", &externalPlugins)
 	if err != nil {
@@ -133,7 +132,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 			continue
 		}
 		jww.INFO.Printf("adding plugin to cron: %s", k)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
+		err := cron.AddFunc(v.Schedule, v.Run(asset))
 		if err != nil {
 			msg := fmt.Sprintf("failed to load plugin %v", k)
 			CustomOut(msg, err)
@@ -142,7 +141,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 
 	for _, v := range internalPlugins {
 		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
+		err := cron.AddFunc(v.Schedule, v.Run(asset))
 		if err != nil {
 			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
 			CustomOut(msg, err)
@@ -185,7 +184,7 @@ func RunLoop(asset *Asset) {
 		envinfo.Env = new(envinfo.EnvInfoGroup)
 		envinfo.Env.GetInfo()
 	}
-	handlePlugins(asset.client, cron)
+	handlePlugins(asset, cron)
 	handleCommands(asset)
 	for _ = range signalChannel {
 		// sig is a ^c, handle it
