@@ -175,7 +175,7 @@ func SendChunks(b []byte, asset *Asset) (int, string, error) {
 }
 
 // PutData Gets presigned url and put data to it. Return string of url it has
-// been put to as well as the hash of the bytes
+// been put to
 func PutData(b []byte, asset *Asset) (string, error) {
 	client := &http.Client{}
 	presigned, err := GetPutUrl(asset)
