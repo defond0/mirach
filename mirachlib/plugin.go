@@ -160,7 +160,7 @@ func SendData(b []byte, t string, asset *Asset) error {
 func SendChunks(b []byte, asset *Asset) (int, string, error) {
 	id := fmt.Sprintf("%s", uuid.New())
 	var n int
-	splits, err := util.SplitAt(b, MaxChunkedSize)
+	splits, err := util.SplitAt(b, MaxMQTTDataSize)
 	if err != nil {
 		return 0, "", err
 	}
@@ -197,12 +197,10 @@ func PutData(b []byte, asset *Asset) (string, error) {
 
 // GetPutUrl will return a presigned url msg or error
 func GetPutUrl(asset *Asset) (getURLMsg, error) {
-	if err := asset.CycleUrlChannel(); err != nil {
+	if err := asset.SubscribeURLTopic(); err != nil {
 		return getURLMsg{}, err
 	}
-	custID := viper.GetString("customer.id")
-	assetID := viper.GetString("asset.id")
-	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
+	path := fmt.Sprintf("mirach/url/put/%s/%s", asset.cust.id, asset.id)
 	pubToken := asset.client.Publish(path, 1, false, "")
 	pubToken.Wait()
 	timeoutCh := util.Timeout(10 * time.Second)

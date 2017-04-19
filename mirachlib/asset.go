@@ -112,8 +112,8 @@ func (a *Asset) Init() error {
 	return nil
 }
 
-// CycleUrlChannel is a function to new up a subscription to s3/put/url topic
-func (a *Asset) CycleUrlChannel() error {
+// SubscribeURLTopic is a function to new up a subscription to s3/put/url topic
+func (a *Asset) SubscribeURLTopic() error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
 	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
