@@ -26,8 +26,8 @@ type Asset struct {
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
 	urlHandler mqtt.MessageHandler
-	cmdChan    chan CmdMsg // channel receiving command messages
-	urlChan    chan urlMsg // channel receiving url messages
+	cmdChan    chan CmdMsg    // channel receiving command messages
+	urlChan    chan getURLMsg // channel receiving url messages
 }
 
 func getCustomer() (*Customer, error) {
@@ -43,6 +43,7 @@ func getCustomer() (*Customer, error) {
 
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
+	a.urlChan = make(chan getURLMsg, 1)
 	var err error
 	a.cust, err = getCustomer()
 	if err != nil {
@@ -116,10 +117,9 @@ func (a *Asset) CycleUrlChannel() error {
 	custID := viper.GetString("customer.id")
 	assetID := viper.GetString("asset.id")
 	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
-	a.urlChan = make(chan urlMsg, 1)
 	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
-		res := urlMsg{}
-		empty := urlMsg{}
+		res := getURLMsg{}
+		empty := getURLMsg{}
 		_ = json.Unmarshal(msg.Payload(), &res)
 		if res != empty {
 			a.urlChan <- res
