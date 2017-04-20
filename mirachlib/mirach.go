@@ -124,7 +124,7 @@ func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
 		ok := true
 		for _, p := range internalPlugins {
 			if v.Label == p.Label || v.Label == p.Type {
-				err = fmt.Errorf("refusing to load plugin %v: internal name taken", k)
+				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
 				CustomOut(nil, err)
 				ok = false
 				break
