@@ -18,7 +18,6 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
@@ -75,7 +74,7 @@ func handleCommands(asset *Asset) {
 	CustomOut(msg, nil)
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
+func handlePlugins(asset *Asset, cron *cron.MirachCron) {
 	externalPlugins := make(map[string]ExternalPlugin)
 	err := viper.UnmarshalKey("plugins", &externalPlugins)
 	if err != nil {
@@ -137,7 +136,7 @@ func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
 		if err != nil {
 			if err.Error() == "time: invalid duration" {
 				jww.INFO.Printf("adding plugin to cron: %s", k)
-				err := cron.AddFunc(v.Schedule, v.Run(client))
+				err := cron.AddFunc(v.Schedule, v.Run(asset))
 				if err != nil {
 					msg := fmt.Sprintf("failed to load plugin %v", k)
 					CustomOut(msg, err)
@@ -148,7 +147,7 @@ func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
 		}
 		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", k, delay)
 		res := make(chan interface{})
-		cron.AddFuncDelayed(v.Schedule, v.Run(client), delay, res)
+		cron.AddFuncDelayed(v.Schedule, v.Run(asset), delay, res)
 		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", k, delay)
 		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", k, delay)
 		go logResChan(successMsg, errorMsg, res)
@@ -156,7 +155,7 @@ func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
 	for _, v := range internalPlugins {
 		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", v.Label, v.LoadDelay)
 		res := make(chan interface{})
-		cron.AddFuncDelayed(v.Schedule, v.Run(client), v.LoadDelay, res)
+		cron.AddFuncDelayed(v.Schedule, v.Run(asset), v.LoadDelay, res)
 		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", v.Label, v.LoadDelay)
 		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", v.Label, v.LoadDelay)
 		go logResChan(successMsg, errorMsg, res)
@@ -217,7 +216,7 @@ func RunLoop(asset *Asset) {
 		envinfo.Env = new(envinfo.EnvInfoGroup)
 		envinfo.Env.GetInfo()
 	}
-	handlePlugins(asset.client, cron)
+	handlePlugins(asset, cron)
 	handleCommands(asset)
 	for _ = range signalChannel {
 		// sig is a ^c, handle it
