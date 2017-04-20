@@ -24,15 +24,15 @@ const ChunkSize = 88000
 type ExternalPlugin struct {
 	Cmd       string `json:"cmd"`
 	Label     string `json:"label"`
+	LoadDelay string `json:"load_delay"`
 	Schedule  string `json:"schedule"`
-	LoadDelay string `json:"start_delay"`
 }
 
 // InternalPlugin is a regularly run function that collects data.
 type InternalPlugin struct {
 	Label     string
-	Schedule  string
 	LoadDelay time.Duration
+	Schedule  string
 	StrFunc   func() string
 	Type      string
 }
