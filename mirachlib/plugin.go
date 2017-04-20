@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"reflect"
+	"time"
 
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
@@ -21,17 +22,19 @@ const ChunkSize = 88000
 
 // ExternalPlugin is a regularly run command that collects data.
 type ExternalPlugin struct {
-	Cmd      string `json:"cmd"`
-	Label    string `json:"label"`
-	Schedule string `json:"schedule"`
+	Cmd       string `json:"cmd"`
+	Label     string `json:"label"`
+	Schedule  string `json:"schedule"`
+	LoadDelay string `json:"start_delay"`
 }
 
 // InternalPlugin is a regularly run function that collects data.
 type InternalPlugin struct {
-	Label    string
-	Schedule string
-	StrFunc  func() string
-	Type     string
+	Label     string
+	Schedule  string
+	LoadDelay time.Duration
+	StrFunc   func() string
+	Type      string
 }
 
 type mqttMsg struct {
