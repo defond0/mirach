@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
+	"gitlab.eng.cleardata.com/dash/mirach/cron"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
@@ -17,7 +19,6 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
@@ -74,7 +75,7 @@ func handleCommands(asset *Asset) {
 	CustomOut(msg, nil)
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.Cron) {
+func handlePlugins(client mqtt.Client, cron *cron.MirachCron) {
 	externalPlugins := make(map[string]ExternalPlugin)
 	err := viper.UnmarshalKey("plugins", &externalPlugins)
 	if err != nil {
@@ -123,7 +124,7 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 		ok := true
 		for _, p := range internalPlugins {
 			if v.Label == p.Label || v.Label == p.Type {
-				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
+				err = fmt.Errorf("refusing to load plugin %v: internal name taken", k)
 				CustomOut(nil, err)
 				ok = false
 				break
@@ -132,21 +133,52 @@ func handlePlugins(client mqtt.Client, cron *cron.Cron) {
 		if !ok {
 			continue
 		}
-		jww.INFO.Printf("adding plugin to cron: %s", k)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
+		delay, err := time.ParseDuration(v.LoadDelay)
 		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", k)
+			if err.Error() == "time: invalid duration" {
+				jww.INFO.Printf("adding plugin to cron: %s", k)
+				err := cron.AddFunc(v.Schedule, v.Run(client))
+				if err != nil {
+					msg := fmt.Sprintf("failed to load plugin %v", k)
+					CustomOut(msg, err)
+				}
+			}
+			msg := fmt.Sprintf("failed to parse delay during load plugin %v", k)
 			CustomOut(msg, err)
 		}
+		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", k, delay)
+		res := make(chan interface{})
+		cron.AddFuncDelayed(v.Schedule, v.Run(client), delay, res)
+		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", k, delay)
+		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", k, delay)
+		go logResChan(successMsg, errorMsg, res)
 	}
-
 	for _, v := range internalPlugins {
-		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
-			CustomOut(msg, err)
-		}
+		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", v.Label, v.LoadDelay)
+		res := make(chan interface{})
+		cron.AddFuncDelayed(v.Schedule, v.Run(client), v.LoadDelay, res)
+		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", v.Label, v.LoadDelay)
+		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", v.Label, v.LoadDelay)
+		go logResChan(successMsg, errorMsg, res)
+	}
+}
+
+// logResChan logs a result or error as return to the given channel.
+// With this you can create a a chan to pass to a go routine then invoke this
+// function. When the go routine to which the given channel was passed, the
+// result will be logged.
+func logResChan(successMsg, errMsg string, res chan interface{}) {
+	switch r := <-res; r.(type) {
+	case nil:
+		CustomOut(successMsg, nil)
+	case string:
+		CustomOut(successMsg+": "+r.(string), nil)
+	case error:
+		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
+		CustomOut(msg, r)
+	default:
+		err := fmt.Errorf("unexpected type in result chan")
+		CustomOut(nil, err)
 	}
 }
 

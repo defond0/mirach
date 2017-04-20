@@ -90,6 +90,7 @@ Here is a sample configuration in yaml:
 	  custom_plugin_1:
 	    cmd: custom command
 	    schedule: '@every 5m'
+	    load_delay: '30s'
 	  custom_plugin_2:
 	    cmd: other_cmd
 	    schedule: "0 30 * * * *"
