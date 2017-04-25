@@ -10,6 +10,7 @@ BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
 DOWNLOADLOC := s3://***REMOVED***/mirach
+DOWNLOADSNAPLOC := $(DOWNLOADLOC)/snap
 ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
@@ -92,6 +93,10 @@ mqtt-paho-mocks:
 publish: ## publish all current build archives
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADLOC)"
 	aws s3 sync $(ARCDIR)/ $(DOWNLOADLOC)/
+
+publish-snap: ## publish current build archives to snap shot location
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
+	aws s3 sync $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
