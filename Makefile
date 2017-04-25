@@ -99,7 +99,7 @@ publish-snap: ## publish current build archives to snap shot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
 	aws s3 sync $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
 
-publish-release: ## publish current build archives to snap shot location
+publish-release: publish ## publish current build archives to snap shot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSRELEASELOC)"
 	aws s3 sync $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
 
