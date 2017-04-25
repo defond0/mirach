@@ -54,7 +54,7 @@ $(ARCDIR)/%.zip: $(BINDIR)/%/*
 all: test $(PROG_TARGETS) archives ## build all systems and architectures
 
 all-snap:
-	SNAP="derp" $(MAKE) all
+	SNAP="true" $(MAKE) all
 
 archives: $(ARC_TARGETS) ## archive all builds
 
