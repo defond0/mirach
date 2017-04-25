@@ -3,7 +3,7 @@ PHONY: all archives clean clean-build deploy-docs docs help lint test
 
 # project variables
 PROJECT_NAME := mirach
-VERSION := $(shell git describe --always --dirty)
+VERSION := $(if $(SNAP),SNAPSHOT,$(shell git describe --always --dirty))
 
 # helper variables
 BUILDDIR := ./_build
@@ -52,6 +52,9 @@ $(ARCDIR)/%.zip: $(BINDIR)/%/*
 	zip -j $@ $<
 
 all: test $(PROG_TARGETS) archives ## build all systems and architectures
+
+all-snap:
+	SNAP="derp" $(MAKE) all
 
 archives: $(ARC_TARGETS) ## archive all builds
 
