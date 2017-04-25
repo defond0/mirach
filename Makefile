@@ -10,7 +10,8 @@ BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
 DOWNLOADLOC := s3://***REMOVED***/mirach
-DOWNLOADSNAPLOC := $(DOWNLOADLOC)/snap
+DOWNLOADSNAPLOC := $(DOWNLOADLOC)/SNAPSHOT
+DOWNLOADSRELEASELOC := $(DOWNLOADLOC)/RELEASE
 ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
@@ -97,6 +98,10 @@ publish: ## publish all current build archives
 publish-snap: ## publish current build archives to snap shot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
 	aws s3 sync $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
+
+publish-release: ## publish current build archives to snap shot location
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSRELEASELOC)"
+	aws s3 sync $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
