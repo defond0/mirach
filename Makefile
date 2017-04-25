@@ -97,11 +97,11 @@ publish: ## publish all current build archives
 
 publish-snap: ## publish current build archives to snap shot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
-	aws s3 sync $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
+	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
 
 publish-release: publish ## publish current build archives to snap shot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSRELEASELOC)"
-	aws s3 sync $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
+	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
