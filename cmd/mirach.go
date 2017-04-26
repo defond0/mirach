@@ -38,7 +38,7 @@ var MirachCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err := mirachlib.Start(); err != nil {
-			mirachlib.CustomOut(nil, err)
+			util.CustomOut(nil, err)
 			os.Exit(1)
 		}
 	},

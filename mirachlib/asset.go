@@ -35,7 +35,7 @@ func getCustomer() (*Customer, error) {
 	err := cust.Init()
 	if err != nil {
 		msg := "customer initialization failed"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		return nil, err
 	}
 	return cust, nil
@@ -198,9 +198,9 @@ func (a *Asset) readCmds() error {
 	go func() {
 		for {
 			msg := <-a.cmdChan
-			CustomOut("cmd received: "+msg.Cmd, nil)
+			util.CustomOut("cmd received: "+msg.Cmd, nil)
 		}
 	}()
-	CustomOut("command channel open", nil)
+	util.CustomOut("command channel open", nil)
 	return nil
 }

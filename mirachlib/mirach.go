@@ -38,26 +38,12 @@ func configureLogging() {
 	}
 }
 
-// CustomOut either outputs feedback or a log message at error level.
-func CustomOut(fbMsg, err interface{}) {
-	switch logLevel {
-	case "info", "trace":
-		if err != nil {
-			jww.ERROR.Println(fmt.Sprint(err))
-		} else {
-			jww.INFO.Println(fmt.Sprint(fbMsg))
-		}
-	default:
-		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
-	}
-}
-
 func getAsset() (*Asset, error) {
 	asset := new(Asset)
 	err := asset.Init()
 	if err != nil {
 		msg := "asset initialization failed"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		return nil, err
 	}
 	return asset, nil
@@ -67,12 +53,10 @@ func handleCommands(asset *Asset) {
 	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		os.Exit(1)
 	}
 	msg := "mirach entered running state; plugins loaded"
-	CustomOut(msg, nil)
-}
 
 func handlePlugins(asset *Asset, cron *cron.MirachCron) {
 	externalPlugins := make(map[string]ExternalPlugin)
@@ -160,6 +144,7 @@ func handlePlugins(asset *Asset, cron *cron.MirachCron) {
 		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", v.Label, v.LoadDelay)
 		go logResChan(successMsg, errorMsg, res)
 	}
+	util.CustomOut(msg, nil)
 }
 
 // logResChan logs a result or error as return to the given channel.
@@ -169,15 +154,15 @@ func handlePlugins(asset *Asset, cron *cron.MirachCron) {
 func logResChan(successMsg, errMsg string, res chan interface{}) {
 	switch r := <-res; r.(type) {
 	case nil:
-		CustomOut(successMsg, nil)
+		util.CustomOut(successMsg, nil)
 	case string:
-		CustomOut(successMsg+": "+r.(string), nil)
+		util.CustomOut(successMsg+": "+r.(string), nil)
 	case error:
 		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
-		CustomOut(msg, r)
+		util.CustomOut(msg, r)
 	default:
 		err := fmt.Errorf("unexpected type in result chan")
-		CustomOut(nil, err)
+		util.CustomOut(nil, err)
 	}
 }
 

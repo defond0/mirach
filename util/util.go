@@ -40,6 +40,20 @@ func CheckExceptions(err error, exceptions []string) (string, error) {
 	return "", err
 }
 
+// CustomOut either outputs feedback or a log message at error level.
+func CustomOut(fbMsg, err interface{}) {
+	switch string(jww.StdoutThreshold()) {
+	case "info", "trace":
+		if err != nil {
+			jww.ERROR.Println(fmt.Sprint(err))
+		} else {
+			jww.INFO.Println(fmt.Sprint(fbMsg))
+		}
+	default:
+		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
+	}
+}
+
 // Exists is a simple wrapper around afero.Exists.
 func Exists(path string) (bool, error) {
 	return afero.Exists(Fs, path)
