@@ -9,17 +9,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"time"
 
 	"gitlab.eng.cleardata.com/dash/mirach/cron"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/theherk/viper"
 )
 
 var (
@@ -57,93 +52,6 @@ func handleCommands(asset *Asset) {
 		os.Exit(1)
 	}
 	msg := "mirach entered running state; plugins loaded"
-
-func handlePlugins(asset *Asset, cron *cron.MirachCron) {
-	externalPlugins := make(map[string]ExternalPlugin)
-	err := viper.UnmarshalKey("plugins", &externalPlugins)
-	if err != nil {
-		jww.ERROR.Println(err)
-	}
-	internalPlugins := []InternalPlugin{
-		{
-			Label:    "compinfo-docker",
-			Schedule: "@hourly",
-			StrFunc:  compinfo.GetDockerString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-load",
-			Schedule: "@every 5m",
-			StrFunc:  compinfo.GetLoadString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-sys",
-			Schedule: "@daily",
-			StrFunc:  compinfo.GetSysString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "pkginfo",
-			Schedule: "@daily",
-			StrFunc:  pkginfo.String,
-			Type:     "pkginfo",
-		},
-	}
-	if envinfo.Env.CloudProvider == "aws" {
-		AWSPlugins := []InternalPlugin{
-			{
-				Label:    "ebsinfo",
-				Schedule: "@daily",
-				StrFunc:  ebsinfo.String,
-				Type:     "ebsinfo",
-			},
-		}
-		internalPlugins = append(internalPlugins, AWSPlugins...)
-	}
-	cron.Start()
-	for k, v := range externalPlugins {
-		// Loop over internal plugins to check name collisions.
-		ok := true
-		for _, p := range internalPlugins {
-			if v.Label == p.Label || v.Label == p.Type {
-				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
-				CustomOut(nil, err)
-				ok = false
-				break
-			}
-		}
-		if !ok {
-			continue
-		}
-		delay, err := time.ParseDuration(v.LoadDelay)
-		if err != nil {
-			if err.Error() == "time: invalid duration" {
-				jww.INFO.Printf("adding plugin to cron: %s", k)
-				err := cron.AddFunc(v.Schedule, v.Run(asset))
-				if err != nil {
-					msg := fmt.Sprintf("failed to load plugin %v", k)
-					CustomOut(msg, err)
-				}
-			}
-			msg := fmt.Sprintf("failed to parse delay during load plugin %v", k)
-			CustomOut(msg, err)
-		}
-		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", k, delay)
-		res := make(chan interface{})
-		cron.AddFuncDelayed(v.Schedule, v.Run(asset), delay, res)
-		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", k, delay)
-		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", k, delay)
-		go logResChan(successMsg, errorMsg, res)
-	}
-	for _, v := range internalPlugins {
-		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", v.Label, v.LoadDelay)
-		res := make(chan interface{})
-		cron.AddFuncDelayed(v.Schedule, v.Run(asset), v.LoadDelay, res)
-		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", v.Label, v.LoadDelay)
-		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", v.Label, v.LoadDelay)
-		go logResChan(successMsg, errorMsg, res)
-	}
 	util.CustomOut(msg, nil)
 }
 
