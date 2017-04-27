@@ -132,8 +132,7 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 
 func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
 	if p.Disabled {
-		msg := fmt.Sprintf("plugin disabled, skipping: %s", p.Label)
-		util.CustomOut(msg, nil)
+		jww.INFO.Printf("plugin disabled, skipping: %s", p.Label)
 		return
 	}
 	delay, err := time.ParseDuration(p.LoadDelay)

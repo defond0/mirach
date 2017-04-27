@@ -62,9 +62,9 @@ func handleCommands(asset *Asset) {
 func logResChan(successMsg, errMsg string, res chan interface{}) {
 	switch r := <-res; r.(type) {
 	case nil:
-		util.CustomOut(successMsg, nil)
+		jww.INFO.Println(successMsg)
 	case string:
-		util.CustomOut(successMsg+": "+r.(string), nil)
+		jww.INFO.Println(successMsg + ": " + r.(string))
 	case error:
 		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
 		util.CustomOut(msg, r)
