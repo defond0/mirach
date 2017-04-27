@@ -3,26 +3,21 @@ package pkginfo
 import (
 	"encoding/json"
 
+	"gitlab.eng.cleardata.com/dash/mirach/plugin"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
 
 	"github.com/shirou/gopsutil/host"
 )
 
-// InfoGroup is an interface for getting data and marshaling to json.
-type InfoGroup interface {
-	GetInfo()
-	String() string
-}
-
 // PkgStatus represents the OS and map of list of LinuxPackage.
 type PkgStatus struct {
 	OS       string
-	Packages map[string][]parsers.LinuxPackage `json:"packages"`
+	Packages map[string]map[string]parsers.LinuxPackage `json:"pkg_info"`
 }
 
 // KBStatus represents the OS and map of list of KBArticle.
 type KBStatus struct {
-	Articles map[string][]parsers.KBArticle `json:"articles"`
+	Articles map[string]map[string]parsers.KBArticle `json:"pkg_info"`
 }
 
 //GetInfo fill in the package status object with info.
@@ -68,7 +63,7 @@ func (k *KBStatus) String() string {
 }
 
 //GetInfo will load up and return InfoGroup for current OS.
-func GetInfo() InfoGroup {
+func GetInfo() plugin.InfoGroup {
 	os := getOS()
 	if os == "windows" {
 		kb := new(KBStatus)

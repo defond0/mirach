@@ -12,11 +12,11 @@ import (
 const S_FALSE = 0x00000001
 
 // GetWindowsKBs creates map of available, installed and available security kbs from Windows Update Agent as well as a list of errors that occurred generating that list.
-func GetWindowsKBs() (map[string][]KBArticle, []error) {
+func GetWindowsKBs() (map[string]map[string]KBArticle, []error) {
 	err := coInit()
 	defer ole.CoUninitialize()
 	errors := []error{}
-	out := make(map[string][]KBArticle)
+	out := make(map[string]map[string]KBArticle)
 	avail, err := getWindowsAvailableKBs()
 	if err != nil {
 		errors = append(errors, err)
@@ -35,8 +35,8 @@ func GetWindowsKBs() (map[string][]KBArticle, []error) {
 	return out, errors
 }
 
-func getWindowsInstalledKBs() ([]KBArticle, error) {
-	art := []KBArticle{}
+func getWindowsInstalledKBs() (map[string]KBArticle, error) {
+	art := map[string]KBArticle{}
 	updates, err := searchUpdates("IsInstalled=1")
 	if err != nil {
 		return nil, err
@@ -62,11 +62,10 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 			if newKbId != kbId {
 				kbId = newKbId
 				security := sev.Value() == "Critical"
-				art = append(art, KBArticle{
-					Name:     kbId,
+				art[kbId] = KBArticle{
+					name:     kbId,
 					Security: security,
-				},
-				)
+				}
 			}
 
 		}
@@ -74,8 +73,8 @@ func getWindowsInstalledKBs() ([]KBArticle, error) {
 	return art, nil
 }
 
-func getWindowsAvailableKBs() ([]KBArticle, error) {
-	art := []KBArticle{}
+func getWindowsAvailableKBs() (map[string]KBArticle, error) {
+	art := map[string]KBArticle{}
 	updates, err := searchUpdates("IsInstalled=0")
 	if err != nil {
 		return nil, err
@@ -101,11 +100,10 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 			if newKbId != kbId {
 				kbId = newKbId
 				security := sev.Value() == "Critical"
-				art = append(art, KBArticle{
-					Name:     kbId,
+				art[kbId] = KBArticle{
+					name:     kbId,
 					Security: security,
-				},
-				)
+				}
 			}
 
 		}
@@ -115,16 +113,16 @@ func getWindowsAvailableKBs() ([]KBArticle, error) {
 }
 
 //https://msdn.microsoft.com/en-us/library/windows/desktop/aa386906(v=vs.85).aspx
-func getWindowsAvailableSecurityKBs() ([]KBArticle, error) {
+func getWindowsAvailableSecurityKBs() (map[string]KBArticle, error) {
 	art, err := getWindowsAvailableKBs()
 	if err != nil {
 		return nil, err
 	}
 
-	artSec := []KBArticle{}
-	for _, v := range art {
+	artSec := map[string]KBArticle{}
+	for k, v := range art {
 		if v.Security {
-			artSec = append(artSec, v)
+			artSec[k] = v
 		}
 	}
 	return artSec, nil

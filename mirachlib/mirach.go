@@ -10,14 +10,11 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
+	"gitlab.eng.cleardata.com/dash/mirach/cron"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/theherk/viper"
 )
 
 var (
@@ -36,26 +33,12 @@ func configureLogging() {
 	}
 }
 
-// CustomOut either outputs feedback or a log message at error level.
-func CustomOut(fbMsg, err interface{}) {
-	switch logLevel {
-	case "info", "trace":
-		if err != nil {
-			jww.ERROR.Println(fmt.Sprint(err))
-		} else {
-			jww.INFO.Println(fmt.Sprint(fbMsg))
-		}
-	default:
-		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
-	}
-}
-
 func getAsset() (*Asset, error) {
 	asset := new(Asset)
 	err := asset.Init()
 	if err != nil {
 		msg := "asset initialization failed"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		return nil, err
 	}
 	return asset, nil
@@ -65,74 +48,29 @@ func handleCommands(asset *Asset) {
 	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		os.Exit(1)
 	}
 	msg := "mirach entered running state; plugins loaded"
-	CustomOut(msg, nil)
+	util.CustomOut(msg, nil)
 }
 
-func handlePlugins(client mqtt.Client, cron *cron.Cron) {
-	externalPlugins := make(map[string]ExternalPlugin)
-	err := viper.UnmarshalKey("plugins", &externalPlugins)
-	if err != nil {
-		jww.ERROR.Println(err)
-	}
-	internalPlugins := []InternalPlugin{
-		{
-			Label:    "compinfo-docker",
-			Schedule: "@hourly",
-			StrFunc:  compinfo.GetDockerString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-load",
-			Schedule: "@every 5m",
-			StrFunc:  compinfo.GetLoadString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-sys",
-			Schedule: "@daily",
-			StrFunc:  compinfo.GetSysString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "pkginfo",
-			Schedule: "@daily",
-			StrFunc:  pkginfo.String,
-			Type:     "pkginfo",
-		},
-	}
-	cron.Start()
-	for k, v := range externalPlugins {
-		// Loop over internal plugins to check name collisions.
-		ok := true
-		for _, p := range internalPlugins {
-			if v.Label == p.Label || v.Label == p.Type {
-				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
-				CustomOut(nil, err)
-				ok = false
-				break
-			}
-		}
-		if !ok {
-			continue
-		}
-		jww.INFO.Printf("adding plugin to cron: %s", k)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", k)
-			CustomOut(msg, err)
-		}
-	}
-	for _, v := range internalPlugins {
-		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
-		err := cron.AddFunc(v.Schedule, v.Run(client))
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
-			CustomOut(msg, err)
-		}
+// logResChan logs a result or error as return to the given channel.
+// With this you can create a a chan to pass to a go routine then invoke this
+// function. When the go routine to which the given channel was passed, the
+// result will be logged.
+func logResChan(successMsg, errMsg string, res chan interface{}) {
+	switch r := <-res; r.(type) {
+	case nil:
+		jww.INFO.Println(successMsg)
+	case string:
+		jww.INFO.Println(successMsg + ": " + r.(string))
+	case error:
+		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
+		util.CustomOut(msg, r)
+	default:
+		err := fmt.Errorf("unexpected type in result chan")
+		util.CustomOut(nil, err)
 	}
 }
 
@@ -167,7 +105,11 @@ func RunLoop(asset *Asset) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt)
 	cron := cron.New()
-	handlePlugins(asset.client, cron)
+	if envinfo.Env == nil {
+		envinfo.Env = new(envinfo.EnvInfoGroup)
+		envinfo.Env.GetInfo()
+	}
+	handlePlugins(asset, cron)
 	handleCommands(asset)
 	for _ = range signalChannel {
 		// sig is a ^c, handle it

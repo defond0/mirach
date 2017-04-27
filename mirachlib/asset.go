@@ -22,9 +22,12 @@ type CmdMsg struct {
 // Asset is a Mirach IoT thing representing this machine.
 type Asset struct {
 	MirachNode
+
 	cust       *Customer
 	cmdHandler mqtt.MessageHandler
-	cmdMsg     chan CmdMsg // channel receiving command messages
+	urlHandler mqtt.MessageHandler
+	cmdChan    chan CmdMsg    // channel receiving command messages
+	urlChan    chan getURLMsg // channel receiving url messages
 }
 
 func getCustomer() (*Customer, error) {
@@ -32,7 +35,7 @@ func getCustomer() (*Customer, error) {
 	err := cust.Init()
 	if err != nil {
 		msg := "customer initialization failed"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		return nil, err
 	}
 	return cust, nil
@@ -40,6 +43,7 @@ func getCustomer() (*Customer, error) {
 
 // Init initializes an Asset MirachNode.
 func (a *Asset) Init() error {
+	a.urlChan = make(chan getURLMsg, 1)
 	var err error
 	a.cust, err = getCustomer()
 	if err != nil {
@@ -92,18 +96,37 @@ func (a *Asset) Init() error {
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
-	a.cmdMsg = make(chan CmdMsg, 1)
+	a.cmdChan = make(chan CmdMsg, 1)
 	a.cmdHandler = func(client mqtt.Client, msg mqtt.Message) {
 		res := CmdMsg{}
 		err := json.Unmarshal(msg.Payload(), &res)
 		if err != nil {
 			panic(err)
 		}
-		a.cmdMsg <- res
+		a.cmdChan <- res
 	}
 	path := fmt.Sprintf("mirach/cmd/%s/%s", a.cust.id, a.id)
 	if subToken := a.client.Subscribe(path, 1, a.cmdHandler); subToken.Wait() && subToken.Error() != nil {
 		panic(subToken.Error())
+	}
+	return nil
+}
+
+// SubscribeURLTopic is a function to new up a subscription to s3/put/url topic
+func (a *Asset) SubscribeURLTopic() error {
+	custID := viper.GetString("customer.id")
+	assetID := viper.GetString("asset.id")
+	path := fmt.Sprintf("mirach/url/put/%s/%s", custID, assetID)
+	urlHandler := func(c mqtt.Client, msg mqtt.Message) {
+		res := getURLMsg{}
+		empty := getURLMsg{}
+		_ = json.Unmarshal(msg.Payload(), &res)
+		if res != empty {
+			a.urlChan <- res
+		}
+	}
+	if subToken := a.client.Subscribe(path, 1, urlHandler); subToken.Wait() && subToken.Error() != nil {
+		return subToken.Error()
 	}
 	return nil
 }
@@ -174,10 +197,10 @@ func (a *Asset) CheckRegistration(c *Customer) bool {
 func (a *Asset) readCmds() error {
 	go func() {
 		for {
-			msg := <-a.cmdMsg
-			CustomOut("cmd received: "+msg.Cmd, nil)
+			msg := <-a.cmdChan
+			util.CustomOut("cmd received: "+msg.Cmd, nil)
 		}
 	}()
-	CustomOut("command channel open", nil)
+	util.CustomOut("command channel open", nil)
 	return nil
 }

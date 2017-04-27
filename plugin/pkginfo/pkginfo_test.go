@@ -3,7 +3,6 @@
 package pkginfo
 
 import (
-	"fmt"
 	"testing"
 
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
@@ -25,29 +24,25 @@ func (m *MockInfoGroup) String() string {
 }
 
 func TestKbStatusGetString(t *testing.T) {
-	testInfo := make(map[string][]parsers.KBArticle)
-	testInfo["installed"] = []parsers.KBArticle{
-		{
-			Name:     "KB666",
+	testInfo := make(map[string]map[string]parsers.KBArticle)
+	testInfo["installed"] = map[string]parsers.KBArticle{
+		"KB666": {
 			Security: false,
 		},
 	}
-	testInfo["available"] = []parsers.KBArticle{
-		{
-			Name:     "KB667",
+	testInfo["available"] = map[string]parsers.KBArticle{
+		"KB667": {
 			Security: true,
 		},
 	}
-	testInfo["available_security"] = []parsers.KBArticle{
-		{
-			Name:     "KB667",
+	testInfo["available_security"] = map[string]parsers.KBArticle{
+		"KB667": {
 			Security: true,
 		},
 	}
 	ogKb := new(KBStatus)
 	mockKb := &MockInfoGroup{
 		mockGetInfo: func() {
-			fmt.Println("Get mock")
 			ogKb.Articles = testInfo
 		},
 		mockString: ogKb.String,
@@ -57,61 +52,57 @@ func TestKbStatusGetString(t *testing.T) {
 	if err := json.Unmarshal([]byte(mockKb.String()), &newKb); err != nil {
 		t.Error("can't unmarshall kbs")
 	}
-	if !(newKb.Articles["available"][0] == ogKb.Articles["available"][0]) {
+	if !(newKb.Articles["available"]["KB667"] == ogKb.Articles["available"]["KB667"]) {
 		t.Error("available kbs don't match")
 	}
-	if !(newKb.Articles["available_security"][0] == ogKb.Articles["available_security"][0]) {
+	if !(newKb.Articles["available_security"]["KB667"] == ogKb.Articles["available_security"]["KB667"]) {
 		t.Error("available_security kbs don't match")
 	}
-	if !(newKb.Articles["installed"][0] == ogKb.Articles["installed"][0]) {
+	if !(newKb.Articles["installed"]["KB666"] == ogKb.Articles["installed"]["KB666"]) {
 		t.Error("installed kbs don't match")
 	}
 
 }
 
 func TestPkgStatusGetString(t *testing.T) {
-	testInfo := make(map[string][]parsers.LinuxPackage)
-	testInfo["installed"] = []parsers.LinuxPackage{
-		{
-			Name:     "ssh",
+	testInfo := make(map[string]map[string]parsers.LinuxPackage)
+	testInfo["installed"] = map[string]parsers.LinuxPackage{
+		"ssh": {
 			Version:  "0.1.0",
 			Security: false,
 		},
 	}
-	testInfo["available"] = []parsers.LinuxPackage{
-		{
-			Name:     "ssh",
+	testInfo["available"] = map[string]parsers.LinuxPackage{
+		"ssh": {
 			Version:  "0.1.2",
 			Security: true,
 		},
 	}
-	testInfo["available_security"] = []parsers.LinuxPackage{
-		{
-			Name:     "ssh",
+	testInfo["available_security"] = map[string]parsers.LinuxPackage{
+		"ssh": {
 			Version:  "0.1.2",
 			Security: true,
 		},
 	}
-	ogKb := new(PkgStatus)
-	mockKb := &MockInfoGroup{
+	ogPkgs := new(PkgStatus)
+	mockPkgs := &MockInfoGroup{
 		mockGetInfo: func() {
-			fmt.Println("Get mock")
-			ogKb.Packages = testInfo
+			ogPkgs.Packages = testInfo
 		},
-		mockString: ogKb.String,
+		mockString: ogPkgs.String,
 	}
-	mockKb.GetInfo()
-	newKb := new(PkgStatus)
-	if err := json.Unmarshal([]byte(mockKb.String()), &newKb); err != nil {
+	mockPkgs.GetInfo()
+	newPkgs := new(PkgStatus)
+	if err := json.Unmarshal([]byte(mockPkgs.String()), &newPkgs); err != nil {
 		t.Error("can't unmarshall pkgs")
 	}
-	if !(newKb.Packages["available"][0] == ogKb.Packages["available"][0]) {
+	if !(newPkgs.Packages["available"]["ssh"] == ogPkgs.Packages["available"]["ssh"]) {
 		t.Error("available pkgs don't match")
 	}
-	if !(newKb.Packages["available_security"][0] == ogKb.Packages["available_security"][0]) {
+	if !(newPkgs.Packages["available_security"]["ssh"] == ogPkgs.Packages["available_security"]["ssh"]) {
 		t.Error("available_security pkgs don't match")
 	}
-	if !(newKb.Packages["installed"][0] == ogKb.Packages["installed"][0]) {
+	if !(newPkgs.Packages["installed"]["ssh"] == ogPkgs.Packages["installed"]["ssh"]) {
 		t.Error("installed pkgs don't match")
 	}
 

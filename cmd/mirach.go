@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"gitlab.eng.cleardata.com/dash/mirach/mirachlib"
+	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	"github.com/spf13/cobra"
@@ -13,7 +14,9 @@ import (
 // flag variables
 var (
 	compInfoGroup string
+	incText       bool
 	level         string
+	licenseGroup  string
 	pkgInfoGroup  string
 	version       bool
 )
@@ -35,13 +38,17 @@ var MirachCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err := mirachlib.Start(); err != nil {
-			mirachlib.CustomOut(nil, err)
+			util.CustomOut(nil, err)
 			os.Exit(1)
 		}
 	},
 }
 
 func init() {
+	if envinfo.Env == nil {
+		envinfo.Env = new(envinfo.EnvInfoGroup)
+		envinfo.Env.GetInfo()
+	}
 	MirachCmd.PersistentFlags().StringVarP(&level, "loglevel", "l", "error",
 		"log level: error, info, trace")
 	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
@@ -53,6 +60,12 @@ func init() {
 	MirachCmd.AddCommand(pkginfoCmd)
 	pkginfoCmd.Flags().StringVarP(&pkgInfoGroup, "infogroup", "i", "all",
 		"pkginfo group to check: available, available_security, installed")
-
+	MirachCmd.AddCommand(envinfoCmd)
+	MirachCmd.AddCommand(ebsinfoCmd)
+	MirachCmd.AddCommand(licenseCmd)
+	licenseCmd.Flags().BoolVarP(&incText, "include-text", "t", false,
+		"display full text for each license")
+	licenseCmd.Flags().StringVarP(&licenseGroup, "group", "g", "mirach",
+		`which licenses to display: "all", "mirach", or "other" for libraries used in mirach`)
 	MirachCmd.AddCommand(versionCmd)
 }
