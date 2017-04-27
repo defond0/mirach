@@ -252,11 +252,14 @@ func handleOverrides(builtins map[string]BuiltinPlugin) {
 	}
 	for label, override := range overrides {
 		if builtin, in := builtins[label]; in {
-			if override.Schedule != "" {
-				builtin.Schedule = override.Schedule
+			if override.Disabled {
+				builtin.Disabled = override.Disabled
 			}
 			if override.LoadDelay != "" {
 				builtin.LoadDelay = override.LoadDelay
+			}
+			if override.Schedule != "" {
+				builtin.Schedule = override.Schedule
 			}
 			builtins[label] = builtin
 		}
