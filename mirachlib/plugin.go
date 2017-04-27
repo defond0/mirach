@@ -38,14 +38,14 @@ type chunksMsg struct {
 
 // BuiltinPlugin is a regularly run function that collects data.
 type BuiltinPlugin struct {
-	*Plugin
+	Plugin  `mapstructure:",squash"`
 	StrFunc func() string
 }
 
 // CustomPlugin is a regularly run command that collects data.
 type CustomPlugin struct {
-	*Plugin
-	Cmd string `json:"cmd"`
+	Plugin `mapstructure:",squash"`
+	Cmd    string
 }
 
 type dataMsg struct {
@@ -64,11 +64,11 @@ type mqttMsg struct {
 
 // Plugin is a routine used to collect data.
 type Plugin struct {
-	Enabled   bool `json:"enabled"`
+	Disabled  bool
 	Label     string
-	LoadDelay string `json:"load_delay"`
-	Schedule  string `json:"schedule"`
-	Type      string `json:"type"`
+	LoadDelay string `mapstructure:"load_delay"`
+	Schedule  string
+	Type      string
 }
 
 type putHTTPMsg struct {
