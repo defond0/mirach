@@ -205,6 +205,7 @@ func getBuiltinPlugins() map[string]BuiltinPlugin {
 		handleOverrides(builtinPlugins)
 		for k, v := range builtinPlugins {
 			v.Label = k
+			builtinPlugins[k] = v
 		}
 	}
 	return builtinPlugins
@@ -218,6 +219,7 @@ func getCustomPlugins() map[string]CustomPlugin {
 		}
 		for k, v := range customPlugins {
 			v.Label = k
+			customPlugins[k] = v
 		}
 	}
 	return customPlugins
@@ -248,8 +250,13 @@ func handleOverrides(builtins map[string]BuiltinPlugin) {
 	}
 	for label, override := range overrides {
 		if builtin, in := builtins[label]; in {
-			builtin.Schedule = override.Schedule
-			builtin.LoadDelay = override.LoadDelay
+			if override.Schedule != "" {
+				builtin.Schedule = override.Schedule
+			}
+			if override.LoadDelay != "" {
+				builtin.LoadDelay = override.LoadDelay
+			}
+			builtins[label] = builtin
 		}
 	}
 }
