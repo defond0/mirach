@@ -3,12 +3,15 @@ PHONY: all archives clean clean-build deploy-docs docs help lint test
 
 # project variables
 PROJECT_NAME := mirach
-VERSION := $(shell git describe --always --dirty)
+VERSION := $(if $(SNAP),SNAPSHOT,$(shell git describe --always --dirty))
 
 # helper variables
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
+DOWNLOADLOC := s3://***REMOVED***/mirach
+DOWNLOADSNAPLOC := $(DOWNLOADLOC)/SNAPSHOT
+DOWNLOADSRELEASELOC := $(DOWNLOADLOC)/RELEASE
 ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
@@ -50,6 +53,9 @@ $(ARCDIR)/%.zip: $(BINDIR)/%/*
 
 all: test $(PROG_TARGETS) archives ## build all systems and architectures
 
+all-snap:
+	SNAP="true" $(MAKE) all
+
 archives: $(ARC_TARGETS) ## archive all builds
 
 clean: clean-build clean-mocks ## clean all
@@ -88,8 +94,17 @@ mqtt-paho-mocks:
 	mkdir .mocks
 	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/cleardata.com/mirach/.mocks/
 
-publish:
-	@echo "push to s3 at some point"
+publish: ## publish all current build archives
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADLOC)"
+	aws s3 sync $(ARCDIR)/ $(DOWNLOADLOC)/
+
+publish-release: publish ## publish current build archives to snap shot location
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSRELEASELOC)"
+	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
+
+publish-snapshot: ## publish current build archives to snap shot location
+	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
+	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
 
 README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
