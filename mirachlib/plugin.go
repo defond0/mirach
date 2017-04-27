@@ -110,6 +110,7 @@ func (p *CustomPlugin) Run(asset *Asset) func() {
 // Run will run an internal function and publish its results.
 func (p *BuiltinPlugin) Run(asset *Asset) func() {
 	pFunc := p.StrFunc
+	pLabel := p.Label
 	pType := p.Type
 	return func() {
 		defer func() {
@@ -121,7 +122,7 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 				jww.ERROR.Println(r)
 			}
 		}()
-		jww.INFO.Printf("Running built-in plugin: %s", p.Label)
+		jww.INFO.Printf("Running built-in plugin: %s", pLabel)
 		d := pFunc()
 		if err := SendData([]byte(d), pType, asset); err != nil {
 			jww.ERROR.Println(err)
