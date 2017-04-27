@@ -160,28 +160,28 @@ func getBuiltinPlugins() map[string]BuiltinPlugin {
 	if len(builtinPlugins) == 0 {
 		builtinPlugins = map[string]BuiltinPlugin{
 			"compinfo-docker": {
-				Plugin: &Plugin{
+				Plugin: Plugin{
 					Schedule: "@hourly",
 					Type:     "compinfo",
 				},
 				StrFunc: compinfo.GetDockerString,
 			},
 			"compinfo-load": {
-				Plugin: &Plugin{
+				Plugin: Plugin{
 					Schedule: "@every 5m",
 					Type:     "compinfo",
 				},
 				StrFunc: compinfo.GetLoadString,
 			},
 			"compinfo-sys": {
-				Plugin: &Plugin{
+				Plugin: Plugin{
 					Schedule: "@daily",
 					Type:     "compinfo",
 				},
 				StrFunc: compinfo.GetSysString,
 			},
 			"pkginfo": {
-				Plugin: &Plugin{
+				Plugin: Plugin{
 					Schedule: "@daily",
 					Type:     "pkginfo",
 				},
@@ -191,7 +191,7 @@ func getBuiltinPlugins() map[string]BuiltinPlugin {
 		if envinfo.Env.CloudProvider == "aws" {
 			awsPlugins := map[string]BuiltinPlugin{
 				"ebsinfo": {
-					Plugin: &Plugin{
+					Plugin: Plugin{
 						Schedule: "@daily",
 						Type:     "ebsinfo",
 					},
