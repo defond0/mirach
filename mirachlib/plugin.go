@@ -215,7 +215,7 @@ func getCustomPlugins() map[string]CustomPlugin {
 	if len(customPlugins) == 0 {
 		err := viper.UnmarshalKey("plugins.custom", &customPlugins)
 		if err != nil {
-			jww.ERROR.Println(err)
+			util.CustomOut(nil, err)
 		}
 		for k, v := range customPlugins {
 			v.Label = k
