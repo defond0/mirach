@@ -138,21 +138,24 @@ func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
 	}
 	delay, err := time.ParseDuration(p.LoadDelay)
 	if err != nil {
-		msg := "invalid duration: continuing without delay"
-		util.CustomOut(msg, err)
-		jww.INFO.Printf("adding plugin to cron: %s", p.Label)
-		err := cron.AddFunc(p.Schedule, f)
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", p.Label)
+		if p.LoadDelay != "" {
+			msg := "invalid duration: continuing without delay"
 			util.CustomOut(msg, err)
 		}
 	} else {
-		jww.INFO.Printf("adding plugin: %s to cron with start delay: %s", p.Label, delay)
+		jww.INFO.Printf("adding plugin to cron with start delay: %s, %s", p.Label, delay)
 		res := make(chan interface{})
 		cron.AddFuncDelayed(p.Schedule, f, delay, res)
-		successMsg := fmt.Sprintf("added plugin: %s to cron after: %s", p.Label, delay)
-		errorMsg := fmt.Sprintf("failed to load plugin: %s to cron after: %s", p.Label, delay)
+		successMsg := fmt.Sprintf("added plugin to cron after delay: %s, %s", p.Label, delay)
+		errorMsg := fmt.Sprintf("failed to add plugin to cron after delay: %s, %s", p.Label, delay)
 		go logResChan(successMsg, errorMsg, res)
+		return
+	}
+	jww.INFO.Printf("adding plugin to cron: %s", p.Label)
+	err = cron.AddFunc(p.Schedule, f)
+	if err != nil {
+		msg := fmt.Sprintf("failed to load plugin %v", p.Label)
+		util.CustomOut(msg, err)
 	}
 }
 
