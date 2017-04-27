@@ -17,6 +17,8 @@ Features
 		- package information (installed / available)
 		- computer information
 	- support for custom data collection plugins
+	- overrides for builtin plugins
+	- plugin load can be delayed to prevent overloading
 	- communication over MQTT
 	- client authenticated TLS
 
@@ -87,12 +89,18 @@ Here is a sample configuration in yaml:
 	customer:
 	  id: "12345678"
 	plugins:
-	  custom_plugin_1:
-	    cmd: custom command
-	    schedule: '@every 5m'
-	  custom_plugin_2:
-	    cmd: other_cmd
-	    schedule: "0 30 * * * *"
+	  custom:
+	    custom_plugin_1:
+	      cmd: custom command
+	      schedule: '@every 5m'
+	      load_delay: '30s'
+	    custom_plugin_2:
+	      cmd: other_cmd
+	      schedule: "0 30 * * * *"
+	  builtin:
+	    compinfo-load:
+	      schedule: '@every 15s'
+	      load_delay: '30s'
 
 Notes
 

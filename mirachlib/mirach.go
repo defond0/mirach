@@ -10,15 +10,11 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
+	"gitlab.eng.cleardata.com/dash/mirach/cron"
 	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
-	"github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/theherk/viper"
 )
 
 var (
@@ -37,26 +33,12 @@ func configureLogging() {
 	}
 }
 
-// CustomOut either outputs feedback or a log message at error level.
-func CustomOut(fbMsg, err interface{}) {
-	switch logLevel {
-	case "info", "trace":
-		if err != nil {
-			jww.ERROR.Println(fmt.Sprint(err))
-		} else {
-			jww.INFO.Println(fmt.Sprint(fbMsg))
-		}
-	default:
-		jww.FEEDBACK.Println(fmt.Sprint(fbMsg))
-	}
-}
-
 func getAsset() (*Asset, error) {
 	asset := new(Asset)
 	err := asset.Init()
 	if err != nil {
 		msg := "asset initialization failed"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		return nil, err
 	}
 	return asset, nil
@@ -66,86 +48,29 @@ func handleCommands(asset *Asset) {
 	err := asset.readCmds()
 	if err != nil {
 		msg := "stopped receiving commands; stopping mirach"
-		CustomOut(msg, err)
+		util.CustomOut(msg, err)
 		os.Exit(1)
 	}
 	msg := "mirach entered running state; plugins loaded"
-	CustomOut(msg, nil)
+	util.CustomOut(msg, nil)
 }
 
-func handlePlugins(asset *Asset, cron *cron.Cron) {
-	externalPlugins := make(map[string]ExternalPlugin)
-	err := viper.UnmarshalKey("plugins", &externalPlugins)
-	if err != nil {
-		jww.ERROR.Println(err)
-	}
-	internalPlugins := []InternalPlugin{
-		{
-			Label:    "compinfo-docker",
-			Schedule: "@hourly",
-			StrFunc:  compinfo.GetDockerString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-load",
-			Schedule: "@every 5m",
-			StrFunc:  compinfo.GetLoadString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "compinfo-sys",
-			Schedule: "@daily",
-			StrFunc:  compinfo.GetSysString,
-			Type:     "compinfo",
-		},
-		{
-			Label:    "pkginfo",
-			Schedule: "@daily",
-			StrFunc:  pkginfo.String,
-			Type:     "pkginfo",
-		},
-	}
-	if envinfo.Env.CloudProvider == "aws" {
-		AWSPlugins := []InternalPlugin{
-			{
-				Label:    "ebsinfo",
-				Schedule: "@daily",
-				StrFunc:  ebsinfo.String,
-				Type:     "ebsinfo",
-			},
-		}
-		internalPlugins = append(internalPlugins, AWSPlugins...)
-	}
-	cron.Start()
-	for k, v := range externalPlugins {
-		// Loop over internal plugins to check name collisions.
-		ok := true
-		for _, p := range internalPlugins {
-			if v.Label == p.Label || v.Label == p.Type {
-				err := fmt.Errorf("refusing to load plugin %v: internal name taken", k)
-				CustomOut(nil, err)
-				ok = false
-				break
-			}
-		}
-		if !ok {
-			continue
-		}
-		jww.INFO.Printf("adding plugin to cron: %s", k)
-		err := cron.AddFunc(v.Schedule, v.Run(asset))
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", k)
-			CustomOut(msg, err)
-		}
-	}
-
-	for _, v := range internalPlugins {
-		jww.INFO.Printf("adding plugin to cron: %s", v.Label)
-		err := cron.AddFunc(v.Schedule, v.Run(asset))
-		if err != nil {
-			msg := fmt.Sprintf("failed to load plugin %v", v.Label)
-			CustomOut(msg, err)
-		}
+// logResChan logs a result or error as return to the given channel.
+// With this you can create a a chan to pass to a go routine then invoke this
+// function. When the go routine to which the given channel was passed, the
+// result will be logged.
+func logResChan(successMsg, errMsg string, res chan interface{}) {
+	switch r := <-res; r.(type) {
+	case nil:
+		jww.INFO.Println(successMsg)
+	case string:
+		jww.INFO.Println(successMsg + ": " + r.(string))
+	case error:
+		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
+		util.CustomOut(msg, r)
+	default:
+		err := fmt.Errorf("unexpected type in result chan")
+		util.CustomOut(nil, err)
 	}
 }
 
