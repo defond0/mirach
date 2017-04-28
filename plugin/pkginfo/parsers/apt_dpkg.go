@@ -31,7 +31,7 @@ func GetAptDpkgPkgs() (map[string]map[string]LinuxPackage, []error) {
 
 func getDpkgInstalledPackages() (map[string]LinuxPackage, error) {
 	aptget := command("dpkg -l")
-	sed := exec.Command("sed", "'1,/^+++/d'")
+	sed := exec.Command("sed", "1,/^+++/d")
 	awk := exec.Command("awk", "{{ print $2 , $3 }}")
 	stdout, _, err := pipeline(aptget, sed, awk)
 	if err != nil {
