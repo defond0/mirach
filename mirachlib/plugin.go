@@ -20,6 +20,7 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	"github.com/google/uuid"
+	robfigCron "github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
@@ -169,6 +170,8 @@ func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
 		}()
 		return
 	}
+	s, _ := robfigCron.Parse(p.Schedule)
+	jww.TRACE.Printf("%s: initial run time: %s", p.Label, s.Next(time.Now()))
 }
 
 func getBuiltinPlugins() map[string]BuiltinPlugin {
