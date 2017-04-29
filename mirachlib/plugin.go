@@ -67,6 +67,7 @@ type Plugin struct {
 	Disabled  bool
 	Label     string
 	LoadDelay string `mapstructure:"load_delay"`
+	RunAtLoad bool   `mapstructure:"run_at_load"`
 	Schedule  string
 	Type      string
 }
@@ -87,7 +88,7 @@ func (p *CustomPlugin) Run(asset *Asset) func() {
 	pLabel := p.Label
 	pType := p.Type
 	return func() {
-		jww.INFO.Printf("Running plugin: %s", pLabel)
+		jww.INFO.Printf("%s: running", pLabel)
 		cmd := exec.Command(pCmd)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -122,7 +123,7 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 				jww.ERROR.Println(r)
 			}
 		}()
-		jww.INFO.Printf("Running built-in plugin: %s", pLabel)
+		jww.INFO.Printf("%s: running", pLabel)
 		d := pFunc()
 		if err := SendData([]byte(d), pType, asset); err != nil {
 			jww.ERROR.Println(err)
@@ -132,29 +133,41 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 
 func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
 	if p.Disabled {
-		jww.INFO.Printf("plugin disabled, skipping: %s", p.Label)
+		jww.INFO.Printf("%s: disabled, skipping", p.Label)
 		return
 	}
+	var (
+		addMsg     = fmt.Sprintf("%s: adding to cron", p.Label)     // notification of load process
+		successMsg = fmt.Sprintf("%s: added to cron", p.Label)      // message if successfully loaded
+		errorMsg   = fmt.Sprintf("%s: failed add to cron", p.Label) // error if failure to load
+	)
 	delay, err := time.ParseDuration(p.LoadDelay)
 	if err != nil {
 		if p.LoadDelay != "" {
 			msg := "invalid duration: continuing without delay"
 			util.CustomOut(msg, err)
+			delay = 0
 		}
-	} else {
-		jww.INFO.Printf("adding plugin to cron with start delay: %s, %s", p.Label, delay)
-		res := make(chan interface{})
-		cron.AddFuncDelayed(p.Schedule, f, delay, res)
-		successMsg := fmt.Sprintf("added plugin to cron after delay: %s, %s", p.Label, delay)
-		errorMsg := fmt.Sprintf("failed to add plugin to cron after delay: %s, %s", p.Label, delay)
-		go logResChan(successMsg, errorMsg, res)
-		return
+		// If an empty sting is given an error is generated, but the
+		// delay is correctly set to zero. No need to set here.
 	}
-	jww.INFO.Printf("adding plugin to cron: %s", p.Label)
-	err = cron.AddFunc(p.Schedule, f)
-	if err != nil {
-		msg := fmt.Sprintf("failed to load plugin %v", p.Label)
-		util.CustomOut(msg, err)
+	if delay > 0 {
+		addMsg += fmt.Sprintf(" in %s", delay)
+		successMsg += fmt.Sprintf(" after %s", delay)
+		errorMsg += fmt.Sprintf(" after %s", delay)
+	}
+	jww.INFO.Println(addMsg)
+	res := make(chan interface{})
+	cron.AddFuncDelayed(p.Schedule, f, delay, res)
+	go logResChan(successMsg, errorMsg, res)
+	if p.RunAtLoad {
+		pLabel := p.Label
+		go func() {
+			jww.TRACE.Printf("%s: run_at_load true; run when loaded then resume schedule", pLabel)
+			time.Sleep(delay)
+			f()
+		}()
+		return
 	}
 }
 
