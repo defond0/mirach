@@ -264,24 +264,29 @@ func getPutURL(asset *Asset) (getURLMsg, error) {
 }
 
 func handleOverrides(builtins map[string]BuiltinPlugin) {
-	overrides := map[string]BuiltinPlugin{}
-	err := viper.UnmarshalKey("plugins.builtin", &overrides)
-	if err != nil {
-		jww.ERROR.Println(err)
-	}
-	for label, override := range overrides {
-		if builtin, in := builtins[label]; in {
-			if override.Disabled {
-				builtin.Disabled = override.Disabled
-			}
-			if override.LoadDelay != "" {
-				builtin.LoadDelay = override.LoadDelay
-			}
-			if override.Schedule != "" {
-				builtin.Schedule = override.Schedule
-			}
-			builtins[label] = builtin
+	for label, builtin := range builtins {
+		path := fmt.Sprintf("plugins.builtin.%s", label)
+		var override BuiltinPlugin
+		meta, err := viper.UnmarshalKeyWithMeta(path, &override)
+		if err != nil {
+			jww.ERROR.Println(err)
 		}
+		if override.Disabled {
+			builtin.Disabled = override.Disabled
+		}
+		if override.LoadDelay != "" {
+			builtin.LoadDelay = override.LoadDelay
+		}
+		for _, k := range meta.Keys {
+			if k == "run_at_load" {
+				builtin.RunAtLoad = override.RunAtLoad
+				break
+			}
+		}
+		if override.Schedule != "" {
+			builtin.Schedule = override.Schedule
+		}
+		builtins[label] = builtin
 	}
 }
 
