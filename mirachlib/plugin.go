@@ -193,15 +193,18 @@ func getBuiltinPlugins() map[string]BuiltinPlugin {
 			},
 			"compinfo-sys": {
 				Plugin: Plugin{
-					Schedule: "@daily",
-					Type:     "compinfo",
+					RunAtLoad: true,
+					Schedule:  "@daily",
+					Type:      "compinfo",
 				},
 				StrFunc: compinfo.GetSysString,
 			},
 			"pkginfo": {
 				Plugin: Plugin{
-					Schedule: "@daily",
-					Type:     "pkginfo",
+					LoadDelay: "2m",
+					RunAtLoad: true,
+					Schedule:  "@daily",
+					Type:      "pkginfo",
 				},
 				StrFunc: pkginfo.String,
 			},
