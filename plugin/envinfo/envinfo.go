@@ -89,7 +89,7 @@ func (e *EnvInfoGroup) getAwsInfo() error {
 	e.CloudProvider = "aws"
 	e.CloudProviderInfo = map[string]string{}
 	e.CloudProviderInfo["instance-id"] = string(instID)
-	e.CloudProviderInfo["account-id"] = string(accountID)
+	e.CloudProviderInfo["account-id"] = accountID
 	e.CloudProviderInfo["instance-type"] = string(instType)
 	e.CloudProviderInfo["availablity-zone"] = string(az)
 	e.CloudProviderInfo["region"] = string(region)
