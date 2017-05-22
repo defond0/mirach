@@ -105,10 +105,14 @@ func (e *EnvInfoGroup) String() string {
 // GetInfo populates EnvInfoGroup with relevant data.
 func (e *EnvInfoGroup) GetInfo() {
 	if ans, _ := IAmInAws(); ans {
-		e.getAwsInfo()
+		if err := e.getAwsInfo(); err != nil {
+			jww.ERROR.Println("failed to get aws information")
+		}
 		jww.DEBUG.Println("detected aws environment")
 	} else {
-		e.getNullInfo()
+		if err := e.getNullInfo(); err != nil {
+			jww.ERROR.Println("failed to get default information")
+		}
 		jww.DEBUG.Println("detected unknown environment")
 	}
 }
