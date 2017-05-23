@@ -15,6 +15,7 @@ import (
 	"gitlab.eng.cleardata.com/dash/mirach/util"
 
 	jww "github.com/spf13/jwalterweatherman"
+	"github.com/theherk/viper"
 )
 
 var (
@@ -88,6 +89,14 @@ func PrepResources() (*Asset, error) {
 		cfgType := readCfgType()
 		err := util.BlankConfig(cfgType, sysConfDir)
 		if err != nil {
+			return nil, err
+		}
+	}
+	brokerURL := viper.GetString("broker")
+	if brokerURL == "" {
+		brokerURL = readBroker()
+		viper.Set("broker", brokerURL)
+		if err = viper.WriteConfig(); err != nil {
 			return nil, err
 		}
 	}

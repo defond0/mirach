@@ -92,7 +92,7 @@ func (a *Asset) Init() error {
 	if err != nil {
 		return err
 	}
-	a.client, err = NewClient(ca, a.privKey, a.cert, a.cust.id+":"+a.id)
+	a.client, err = NewClient(viper.GetString("broker"), ca, a.privKey, a.cert, a.cust.id+":"+a.id)
 	if err != nil {
 		return errors.New("asset client connection failed")
 	}
@@ -137,7 +137,7 @@ func (a *Asset) Register(c *Customer) error {
 	if err != nil {
 		return err
 	}
-	c.client, err = NewClient(ca, c.privKey, c.cert, c.id)
+	c.client, err = NewClient(viper.GetString("broker"), ca, c.privKey, c.cert, c.id)
 	defer c.client.Disconnect(0)
 	c.regMsg = make(chan RegMsg, 1)
 	c.regHandler = func(client mqtt.Client, msg mqtt.Message) {
