@@ -3,6 +3,7 @@ package mirachlib
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -42,5 +43,20 @@ func readCfgType() string {
 			}
 		}
 		fmt.Println("must leave blank or enter one of the valid values given above; try again")
+	}
+}
+
+func readBroker() string {
+	var in string
+	for {
+		fmt.Print("mqtt broker url: ")
+		stdin := bufio.NewReader(os.Stdin)
+		read, _ := stdin.ReadString('\n')
+		in = strings.TrimRight(read, "\n")
+		if _, err := url.ParseRequestURI(in); err != nil {
+			fmt.Printf("broker url not valid: %s; try again\n", err.Error())
+			continue
+		}
+		return in
 	}
 }

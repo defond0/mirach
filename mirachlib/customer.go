@@ -72,7 +72,7 @@ func (c *Customer) GetCustomerID() (string, error) {
 		c.Init()
 	}
 	ca, err := util.GetCA(confDirs)
-	client, err := NewClient(ca, c.privKey, c.cert, "mirach-registration-client")
+	client, err := NewClient(viper.GetString("broker"), ca, c.privKey, c.cert, "mirach-registration-client")
 	if err != nil {
 		return "", errors.New("registration client connection failed")
 	}
