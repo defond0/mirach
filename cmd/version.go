@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/cleardataeng/mirach/util"
 	"github.com/spf13/cobra"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
 )
 
 var versionCmd = &cobra.Command{

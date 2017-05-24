@@ -3,7 +3,7 @@ package compinfo
 import (
 	"encoding/json"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
+	"github.com/cleardataeng/mirach/plugin"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/docker"

@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/util"
 )
 
 // Exception is a type that should be created and returned or used as an argument

@@ -26,7 +26,7 @@ Installation
 
 The easiest way to install a go package from source is using the go get command.
 
-	go get gitlab.eng.cleardata.com/dash/mirach
+	go get github.com/cleardataeng/mirach
 
 But if you don't need the source you can download the binary for your operating
 system and architecture from _insert links here_.

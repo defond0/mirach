@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
+	"github.com/cleardataeng/mirach/plugin"
 
 	jww "github.com/spf13/jwalterweatherman"
 )

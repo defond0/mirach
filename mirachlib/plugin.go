@@ -12,12 +12,12 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.eng.cleardata.com/dash/mirach/cron"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/cron"
+	"github.com/cleardataeng/mirach/plugin/compinfo"
+	"github.com/cleardataeng/mirach/plugin/ebsinfo"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
+	"github.com/cleardataeng/mirach/plugin/pkginfo"
+	"github.com/cleardataeng/mirach/util"
 
 	"github.com/google/uuid"
 	robfigCron "github.com/robfig/cron"

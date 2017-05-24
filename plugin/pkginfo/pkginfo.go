@@ -3,8 +3,8 @@ package pkginfo
 import (
 	"encoding/json"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
+	"github.com/cleardataeng/mirach/plugin"
+	"github.com/cleardataeng/mirach/plugin/pkginfo/parsers"
 
 	"github.com/shirou/gopsutil/host"
 )

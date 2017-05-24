@@ -12,7 +12,7 @@ BINDIR := $(BUILDDIR)/bin
 DOWNLOADLOC := s3://***REMOVED***/mirach
 DOWNLOADSNAPLOC := $(DOWNLOADLOC)/SNAPSHOT
 DOWNLOADSRELEASELOC := $(DOWNLOADLOC)/RELEASE
-ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
+ROOTPKG := github.com/cleardataeng/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
 help:

@@ -6,9 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/cleardataeng/mirach/plugin"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 )
 
 // EBSInfoGroup has info on this instances ebs volumes

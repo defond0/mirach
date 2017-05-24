@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/cleardataeng/mirach/util"
 	"github.com/spf13/cobra"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
 )
 
 var licenseCmd = &cobra.Command{

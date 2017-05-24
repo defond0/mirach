@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/cleardataeng/mirach/plugin/envinfo"
 	"github.com/spf13/cobra"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
 )
 
 var envinfoCmd = &cobra.Command{

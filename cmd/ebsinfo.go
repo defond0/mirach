@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
+	"github.com/cleardataeng/mirach/plugin/ebsinfo"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
 
 	"github.com/spf13/cobra"
 )
