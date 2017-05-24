@@ -1054,10 +1054,6 @@ Full text of included licenses
 {{end -}}
 `
 
-func first(m int) {
-
-}
-
 // ShowMirachLicense will output mirach's license text.
 func ShowMirachLicense(incText bool) {
 	fmt.Printf("### %s\n", licenseMirach.Title)
