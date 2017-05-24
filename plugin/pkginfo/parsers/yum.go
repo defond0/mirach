@@ -11,11 +11,11 @@ func GetYumPkgs() (map[string]map[string]LinuxPackage, []error) {
 		errors = append(errors, err)
 	}
 	out["available"] = avail
-	avail_sec, err := getYumAvailableSecurityPackages()
+	availSec, err := getYumAvailableSecurityPackages()
 	if err != nil {
 		errors = append(errors, err)
 	}
-	out["available_security"] = avail_sec
+	out["available_security"] = availSec
 	installed, err := getYumInstalledPackages()
 	if err != nil {
 		errors = append(errors, err)

@@ -7,9 +7,9 @@ import (
 	"github.com/go-ole/go-ole/oleutil"
 )
 
-// S_FALSE is returned by CoInitializeEx if it was already called on this thread.
+// SFALSE is returned by CoInitializeEx if it was already called on this thread.
 // https://github.com/StackExchange/wmi/blob/master/wmi.go#L54
-const S_FALSE = 0x00000001
+const SFALSE = 0x00000001
 
 // GetWindowsKBs creates map of available, installed and available security kbs from Windows Update Agent as well as a list of errors that occurred generating that list.
 func GetWindowsKBs() (map[string]map[string]KBArticle, []error) {
@@ -22,11 +22,11 @@ func GetWindowsKBs() (map[string]map[string]KBArticle, []error) {
 		errors = append(errors, err)
 	}
 	out["available"] = avail
-	avail_sec, err := getWindowsAvailableSecurityKBs()
+	availSec, err := getWindowsAvailableSecurityKBs()
 	if err != nil {
 		errors = append(errors, err)
 	}
-	out["available_security"] = avail_sec
+	out["available_security"] = availSec
 	installed, err := getWindowsInstalledKBs()
 	if err != nil {
 		errors = append(errors, err)
@@ -42,28 +42,28 @@ func getWindowsInstalledKBs() (map[string]KBArticle, error) {
 		return nil, err
 	}
 	defer updates.Release()
-	var kbId string
+	var kbID string
 	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
 		if err != nil {
 			return nil, err
 		}
 		defer update.Clear()
-		update_dispatch := update.ToIDispatch()
-		defer update_dispatch.Release()
-		sev, err := update_dispatch.GetProperty("MsrcSeverity")
-		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
+		updateDispatch := update.ToIDispatch()
+		defer updateDispatch.Release()
+		sev, err := updateDispatch.GetProperty("MsrcSeverity")
+		kbs, err := updateDispatch.GetProperty("KBArticleIDs")
 		if err != nil {
 			return nil, err
 		}
-		kbIds, err := getEnumFromDispatch(kbs.ToIDispatch())
-		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
+		kbIDs, err := getEnumFromDispatch(kbs.ToIDispatch())
+		for kb, length, _ := kbIDs.Next(1); length > 0; kb, length, err = kbIDs.Next(1) {
 			defer kb.Clear()
-			newKbId := fmt.Sprintf("KB%s", kb.Value())
-			if newKbId != kbId {
-				kbId = newKbId
+			newID := fmt.Sprintf("KB%s", kb.Value())
+			if newID != kbID {
+				kbID = newID
 				security := sev.Value() == "Critical"
-				art[kbId] = KBArticle{
-					name:     kbId,
+				art[kbID] = KBArticle{
+					name:     kbID,
 					Security: security,
 				}
 			}
@@ -80,28 +80,28 @@ func getWindowsAvailableKBs() (map[string]KBArticle, error) {
 		return nil, err
 	}
 	defer updates.Release()
-	var kbId string
+	var kbID string
 	for update, length, err := updates.Next(1); length > 0; update, length, err = updates.Next(1) {
 		if err != nil {
 			return nil, err
 		}
 		defer update.Clear()
-		update_dispatch := update.ToIDispatch()
-		defer update_dispatch.Release()
-		sev, err := update_dispatch.GetProperty("MsrcSeverity")
-		kbs, err := update_dispatch.GetProperty("KBArticleIDs")
-		kbIds, err := getEnumFromDispatch(kbs.ToIDispatch())
+		updateDispatch := update.ToIDispatch()
+		defer updateDispatch.Release()
+		sev, err := updateDispatch.GetProperty("MsrcSeverity")
+		kbs, err := updateDispatch.GetProperty("KBArticleIDs")
+		kbIDs, err := getEnumFromDispatch(kbs.ToIDispatch())
 		if err != nil {
 			return nil, err
 		}
 
-		for kb, length, _ := kbIds.Next(1); length > 0; kb, length, err = kbIds.Next(1) {
-			newKbId := fmt.Sprintf("KB%s", kb.Value())
-			if newKbId != kbId {
-				kbId = newKbId
+		for kb, length, _ := kbIDs.Next(1); length > 0; kb, length, err = kbIDs.Next(1) {
+			newID := fmt.Sprintf("KB%s", kb.Value())
+			if newID != kbID {
+				kbID = newID
 				security := sev.Value() == "Critical"
-				art[kbId] = KBArticle{
-					name:     kbId,
+				art[kbID] = KBArticle{
+					name:     kbID,
 					Security: security,
 				}
 			}
@@ -112,7 +112,7 @@ func getWindowsAvailableKBs() (map[string]KBArticle, error) {
 	return art, nil
 }
 
-//https://msdn.microsoft.com/en-us/library/windows/desktop/aa386906(v=vs.85).aspx
+// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386906(v=vs.85).aspx
 func getWindowsAvailableSecurityKBs() (map[string]KBArticle, error) {
 	art, err := getWindowsAvailableKBs()
 	if err != nil {
@@ -132,7 +132,7 @@ func coInit() error {
 	err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		if oleCode != ole.S_OK && oleCode != SFALSE {
 			return err
 		}
 	}
@@ -141,17 +141,17 @@ func coInit() error {
 
 //seek the bludger or else QUIDITCH (that's numbawhang)!!!
 func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
-	classId, err := oleutil.ClassIDFrom("Microsoft.Update.Session")
+	classID, err := oleutil.ClassIDFrom("Microsoft.Update.Session")
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		if oleCode != ole.S_OK && oleCode != SFALSE {
 			return &ole.IDispatch{}, err
 		}
 	}
-	session, err := ole.CreateInstance(classId, ole.IID_IUnknown)
+	session, err := ole.CreateInstance(classID, ole.IID_IUnknown)
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		if oleCode != ole.S_OK && oleCode != SFALSE {
 			return &ole.IDispatch{}, err
 		}
 	}
@@ -159,7 +159,7 @@ func getWindowsUpdateSearcher() (*ole.IDispatch, error) {
 	updateSearcherVar, err := dispatch.CallMethod("CreateUpdateSearcher")
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		if oleCode != ole.S_OK && oleCode != SFALSE {
 			return &ole.IDispatch{}, err
 		}
 	}
@@ -177,7 +177,7 @@ func searchUpdates(query string) (*ole.IEnumVARIANT, error) {
 	res, err := updateSearcher.CallMethod("Search", query)
 	if err != nil {
 		oleCode := err.(*ole.OleError).Code()
-		if oleCode != ole.S_OK && oleCode != S_FALSE {
+		if oleCode != ole.S_OK && oleCode != SFALSE {
 			return nil, err
 		}
 	}

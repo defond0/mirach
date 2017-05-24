@@ -14,13 +14,15 @@ func GetAptDpkgPkgs() (map[string]map[string]LinuxPackage, []error) {
 		errors = append(errors, err)
 	}
 	out["available"] = avail
-	getAptitudeSecurityList()
+	if err := getAptitudeSecurityList(); err != nil {
+		errors = append(errors, err)
+	}
 	defer cleanUpSecurityList()
-	avail_sec, err := getAptAvailableSecurityPackages()
+	availSec, err := getAptAvailableSecurityPackages()
 	if err != nil {
 		errors = append(errors, err)
 	}
-	out["available_security"] = avail_sec
+	out["available_security"] = availSec
 	installed, err := getDpkgInstalledPackages()
 	if err != nil {
 		errors = append(errors, err)
