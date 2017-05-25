@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
@@ -72,7 +72,7 @@ func (c *Customer) GetCustomerID() (string, error) {
 		c.Init()
 	}
 	ca, err := util.GetCA(confDirs)
-	client, err := NewClient(ca, c.privKey, c.cert, "mirach-registration-client")
+	client, err := NewClient(viper.GetString("broker"), ca, c.privKey, c.cert, "mirach-registration-client")
 	if err != nil {
 		return "", errors.New("registration client connection failed")
 	}

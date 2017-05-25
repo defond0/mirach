@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin"
+	"github.com/cleardataeng/mirach/plugin"
 
 	jww "github.com/spf13/jwalterweatherman"
 )
@@ -89,7 +89,7 @@ func (e *EnvInfoGroup) getAwsInfo() error {
 	e.CloudProvider = "aws"
 	e.CloudProviderInfo = map[string]string{}
 	e.CloudProviderInfo["instance-id"] = string(instID)
-	e.CloudProviderInfo["account-id"] = string(accountID)
+	e.CloudProviderInfo["account-id"] = accountID
 	e.CloudProviderInfo["instance-type"] = string(instType)
 	e.CloudProviderInfo["availablity-zone"] = string(az)
 	e.CloudProviderInfo["region"] = string(region)
@@ -105,10 +105,14 @@ func (e *EnvInfoGroup) String() string {
 // GetInfo populates EnvInfoGroup with relevant data.
 func (e *EnvInfoGroup) GetInfo() {
 	if ans, _ := IAmInAws(); ans {
-		e.getAwsInfo()
+		if err := e.getAwsInfo(); err != nil {
+			jww.ERROR.Println("failed to get aws information")
+		}
 		jww.DEBUG.Println("detected aws environment")
 	} else {
-		e.getNullInfo()
+		if err := e.getNullInfo(); err != nil {
+			jww.ERROR.Println("failed to get default information")
+		}
 		jww.DEBUG.Println("detected unknown environment")
 	}
 }

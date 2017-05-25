@@ -10,11 +10,12 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.eng.cleardata.com/dash/mirach/cron"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/cron"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
+	"github.com/cleardataeng/mirach/util"
 
 	jww "github.com/spf13/jwalterweatherman"
+	"github.com/theherk/viper"
 )
 
 var (
@@ -88,6 +89,14 @@ func PrepResources() (*Asset, error) {
 		cfgType := readCfgType()
 		err := util.BlankConfig(cfgType, sysConfDir)
 		if err != nil {
+			return nil, err
+		}
+	}
+	brokerURL := viper.GetString("broker")
+	if brokerURL == "" {
+		brokerURL = readBroker()
+		viper.Set("broker", brokerURL)
+		if err = viper.WriteConfig(); err != nil {
 			return nil, err
 		}
 	}

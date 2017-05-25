@@ -1,4 +1,4 @@
-PHONY: all archives clean clean-build deploy-docs docs help lint test
+PHONY: all all-snap archives clean clean-build deploy-docs docs help install install-build-deps install-test-deps lint publish publish-release publish-snapshot release test test-all test-integration test-unit
 .DEFAULT_GOAL := help
 
 # project variables
@@ -9,10 +9,10 @@ VERSION := $(if $(SNAP),SNAPSHOT,$(shell git describe --always --dirty))
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
-DOWNLOADLOC := s3://***REMOVED***/mirach
+DOWNLOADLOC := s3://mirach/builds
 DOWNLOADSNAPLOC := $(DOWNLOADLOC)/SNAPSHOT
 DOWNLOADSRELEASELOC := $(DOWNLOADLOC)/RELEASE
-ROOTPKG := gitlab.eng.cleardata.com/dash/mirach
+ROOTPKG := github.com/cleardataeng/mirach
 LDFLAGS := "-X $(ROOTPKG)/util.Version=$(VERSION)"
 
 help:
@@ -58,24 +58,10 @@ all-snap:
 
 archives: $(ARC_TARGETS) ## archive all builds
 
-clean: clean-build clean-mocks ## clean all
+clean: clean-build ## clean all
 
 clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
-
-clean-mocks: ## remove mock artifacts
-	rm -rf $(GOPATH)/src/cleardata.com/mirach/.mocks
-
-deploy-docs: docs ## deploy docs to S3 bucket
-	aws s3 sync ./docs/html s3://***REMOVED***/$(PROJECT_NAME)/
-
-docs: docs/html/index.html ## generate docs
-
-docs/html/index.html:
-	mkdir -p docs/html/
-	godoc -url "http://localhost:6060/pkg/$(ROOTPKG)" | \
-	sed 's/\(href="\)\(\/lib\)/\1https:\/\/golang.org\2/g' > docs/html/index.html
-
 
 install: install-build-deps ## install to GOPATH
 	go install -v -ldflags=$(LDFLAGS)
@@ -90,19 +76,15 @@ lint: ## gofmt goimports
 	gofmt *.go
 	-goimport *.go
 
-mqtt-paho-mocks:
-	mkdir .mocks
-	mockery -inpkg -dir $(GOPATH)/src/github.com/eclipse/paho.mqtt.golang/  -all  -output $(GOPATH)/src/cleardata.com/mirach/.mocks/
-
 publish: ## publish all current build archives
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADLOC)"
 	aws s3 sync $(ARCDIR)/ $(DOWNLOADLOC)/
 
-publish-release: publish ## publish current build archives to snap shot location
+publish-release: publish ## publish current build archives to release location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSRELEASELOC)"
 	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSRELEASELOC)/
 
-publish-snapshot: ## publish current build archives to snap shot location
+publish-snapshot: ## publish current build archives to snapshot location
 	@echo "syncing contents of $(ARCDIR) to $(DOWNLOADSNAPLOC)"
 	aws s3 sync --delete $(ARCDIR)/ $(DOWNLOADSNAPLOC)/
 
@@ -110,7 +92,7 @@ README.md: ## convert go docs from doc.go to README.md; run with -B to force
 	go get github.com/robertkrimen/godocdown/godocdown
 	godocdown $(ROOTPKG) | sed "s/^--$$//" > README.md
 
-release: req-release-type req-release-repo clean ## package and upload a release
+release: req-release-type req-release-repo ## package and upload a release
 	release -t $(RELEASE_TYPE) -g $(RELEASE_REPO) $(RELEASE_BRANCH) $(RELEASE_BASE)
 
 req-release-type:

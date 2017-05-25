@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.eng.cleardata.com/dash/mirach/mirachlib"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/mirachlib"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
+	"github.com/cleardataeng/mirach/util"
 
 	"github.com/spf13/cobra"
 )

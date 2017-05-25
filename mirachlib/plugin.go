@@ -12,14 +12,15 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.eng.cleardata.com/dash/mirach/cron"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/compinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/ebsinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/envinfo"
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo"
-	"gitlab.eng.cleardata.com/dash/mirach/util"
+	"github.com/cleardataeng/mirach/cron"
+	"github.com/cleardataeng/mirach/plugin/compinfo"
+	"github.com/cleardataeng/mirach/plugin/ebsinfo"
+	"github.com/cleardataeng/mirach/plugin/envinfo"
+	"github.com/cleardataeng/mirach/plugin/pkginfo"
+	"github.com/cleardataeng/mirach/util"
 
 	"github.com/google/uuid"
+	robfigCron "github.com/robfig/cron"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
@@ -67,6 +68,7 @@ type Plugin struct {
 	Disabled  bool
 	Label     string
 	LoadDelay string `mapstructure:"load_delay"`
+	RunAtLoad bool   `mapstructure:"run_at_load"`
 	Schedule  string
 	Type      string
 }
@@ -87,7 +89,7 @@ func (p *CustomPlugin) Run(asset *Asset) func() {
 	pLabel := p.Label
 	pType := p.Type
 	return func() {
-		jww.INFO.Printf("Running plugin: %s", pLabel)
+		jww.INFO.Printf("%s: running", pLabel)
 		cmd := exec.Command(pCmd)
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
@@ -122,7 +124,7 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 				jww.ERROR.Println(r)
 			}
 		}()
-		jww.INFO.Printf("Running built-in plugin: %s", pLabel)
+		jww.INFO.Printf("%s: running", pLabel)
 		d := pFunc()
 		if err := SendData([]byte(d), pType, asset); err != nil {
 			jww.ERROR.Println(err)
@@ -132,30 +134,44 @@ func (p *BuiltinPlugin) Run(asset *Asset) func() {
 
 func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
 	if p.Disabled {
-		jww.INFO.Printf("plugin disabled, skipping: %s", p.Label)
+		jww.INFO.Printf("%s: disabled, skipping", p.Label)
 		return
 	}
+	var (
+		addMsg     = fmt.Sprintf("%s: adding to cron", p.Label)     // notification of load process
+		successMsg = fmt.Sprintf("%s: added to cron", p.Label)      // message if successfully loaded
+		errorMsg   = fmt.Sprintf("%s: failed add to cron", p.Label) // error if failure to load
+	)
 	delay, err := time.ParseDuration(p.LoadDelay)
 	if err != nil {
 		if p.LoadDelay != "" {
 			msg := "invalid duration: continuing without delay"
 			util.CustomOut(msg, err)
+			delay = 0
 		}
-	} else {
-		jww.INFO.Printf("adding plugin to cron with start delay: %s, %s", p.Label, delay)
-		res := make(chan interface{})
-		cron.AddFuncDelayed(p.Schedule, f, delay, res)
-		successMsg := fmt.Sprintf("added plugin to cron after delay: %s, %s", p.Label, delay)
-		errorMsg := fmt.Sprintf("failed to add plugin to cron after delay: %s, %s", p.Label, delay)
-		go logResChan(successMsg, errorMsg, res)
+		// If an empty sting is given an error is generated, but the
+		// delay is correctly set to zero. No need to set here.
+	}
+	if delay > 0 {
+		addMsg += fmt.Sprintf(" in %s", delay)
+		successMsg += fmt.Sprintf(" after %s", delay)
+		errorMsg += fmt.Sprintf(" after %s", delay)
+	}
+	jww.INFO.Println(addMsg)
+	res := make(chan interface{})
+	cron.AddFuncDelayed(p.Schedule, f, delay, res)
+	go logResChan(successMsg, errorMsg, res)
+	if p.RunAtLoad {
+		pLabel := p.Label
+		go func() {
+			jww.TRACE.Printf("%s: run_at_load true; run when loaded then resume schedule", pLabel)
+			time.Sleep(delay)
+			f()
+		}()
 		return
 	}
-	jww.INFO.Printf("adding plugin to cron: %s", p.Label)
-	err = cron.AddFunc(p.Schedule, f)
-	if err != nil {
-		msg := fmt.Sprintf("failed to load plugin %v", p.Label)
-		util.CustomOut(msg, err)
-	}
+	s, _ := robfigCron.Parse(p.Schedule)
+	jww.TRACE.Printf("%s: initial run time: %s", p.Label, s.Next(time.Now()))
 }
 
 func getBuiltinPlugins() map[string]BuiltinPlugin {
@@ -177,15 +193,18 @@ func getBuiltinPlugins() map[string]BuiltinPlugin {
 			},
 			"compinfo-sys": {
 				Plugin: Plugin{
-					Schedule: "@daily",
-					Type:     "compinfo",
+					RunAtLoad: true,
+					Schedule:  "@daily",
+					Type:      "compinfo",
 				},
 				StrFunc: compinfo.GetSysString,
 			},
 			"pkginfo": {
 				Plugin: Plugin{
-					Schedule: "@daily",
-					Type:     "pkginfo",
+					LoadDelay: "2m",
+					RunAtLoad: true,
+					Schedule:  "@daily",
+					Type:      "pkginfo",
 				},
 				StrFunc: pkginfo.String,
 			},
@@ -245,24 +264,29 @@ func getPutURL(asset *Asset) (getURLMsg, error) {
 }
 
 func handleOverrides(builtins map[string]BuiltinPlugin) {
-	overrides := map[string]BuiltinPlugin{}
-	err := viper.UnmarshalKey("plugins.builtin", &overrides)
-	if err != nil {
-		jww.ERROR.Println(err)
-	}
-	for label, override := range overrides {
-		if builtin, in := builtins[label]; in {
-			if override.Disabled {
-				builtin.Disabled = override.Disabled
-			}
-			if override.LoadDelay != "" {
-				builtin.LoadDelay = override.LoadDelay
-			}
-			if override.Schedule != "" {
-				builtin.Schedule = override.Schedule
-			}
-			builtins[label] = builtin
+	for label, builtin := range builtins {
+		path := fmt.Sprintf("plugins.builtin.%s", label)
+		var override BuiltinPlugin
+		meta, err := viper.UnmarshalKeyWithMeta(path, &override)
+		if err != nil {
+			jww.ERROR.Println(err)
 		}
+		if override.Disabled {
+			builtin.Disabled = override.Disabled
+		}
+		if override.LoadDelay != "" {
+			builtin.LoadDelay = override.LoadDelay
+		}
+		for _, k := range meta.Keys {
+			if k == "run_at_load" {
+				builtin.RunAtLoad = override.RunAtLoad
+				break
+			}
+		}
+		if override.Schedule != "" {
+			builtin.Schedule = override.Schedule
+		}
+		builtins[label] = builtin
 	}
 }
 

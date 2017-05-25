@@ -5,7 +5,7 @@ package pkginfo
 import (
 	"testing"
 
-	"gitlab.eng.cleardata.com/dash/mirach/plugin/pkginfo/parsers"
+	"github.com/cleardataeng/mirach/plugin/pkginfo/parsers"
 
 	"encoding/json"
 )

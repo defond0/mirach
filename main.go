@@ -5,7 +5,7 @@ import (
 	"os"
 	"reflect"
 
-	"gitlab.eng.cleardata.com/dash/mirach/cmd"
+	"github.com/cleardataeng/mirach/cmd"
 )
 
 func main() {

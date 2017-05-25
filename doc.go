@@ -26,7 +26,7 @@ Installation
 
 The easiest way to install a go package from source is using the go get command.
 
-	go get gitlab.eng.cleardata.com/dash/mirach
+	go get github.com/cleardataeng/mirach
 
 But if you don't need the source you can download the binary for your operating
 system and architecture from _insert links here_.
@@ -112,6 +112,19 @@ When your asset client certificates are revoked or lost, mirach will attempt to
 re-register the asset. If, at that time, the customer client certificate is
 still valid, and new asset certificate will be issue, downloaded, and used. If
 your client certificate is revoked or lost a replacement needs to be requested.
+
+The decision when overriding values given precedence to the value given in the
+configuration file. For boolean values that default to false, the truth table
+look like the following.
+
+code  | override  | result
+------|-----------|-----------
+false | None      | false (default)
+true  | None      | true
+false | true      | true
+true  | true      | true
+false | false     | false
+true  | false     | false
 
 Credits
 

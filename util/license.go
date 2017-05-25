@@ -181,10 +181,20 @@ var licenseEclipse = license{
 	Title: "Eclipse Public License 1.0",
 	Text:  textEclipse,
 }
-var licenseMirach = license{
-	Title: "Mirach License",
-	Text:  "Copyright 2017 ClearDATA",
-}
+var licenseMirach = `Copyright 2017 ClearDATA
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+`
 var licenseMIT = license{
 	Title: "MIT License",
 	Text:  textMIT,
@@ -1054,18 +1064,9 @@ Full text of included licenses
 {{end -}}
 `
 
-func first(m int) {
-
-}
-
 // ShowMirachLicense will output mirach's license text.
-func ShowMirachLicense(incText bool) {
-	fmt.Printf("### %s\n", licenseMirach.Title)
-	incText = true // TODO: Until there is a formal license, always output.
-	if incText {
-		fmt.Print("\n")
-		fmt.Println(licenseMirach.Text)
-	}
+func ShowMirachLicense() {
+	fmt.Println(licenseMirach)
 }
 
 // ShowOtherLicenses will output licenses and coverage for each third
