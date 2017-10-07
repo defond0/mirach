@@ -1,11 +1,11 @@
 // +build unit
 
-package mirachlib
+package lib
 
 import (
 	"testing"
 
-	"github.com/cleardataeng/mirach/util"
+	"github.com/cleardataeng/mirach/lib/util"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/stretchr/testify/assert"

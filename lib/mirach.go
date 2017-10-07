@@ -1,18 +1,18 @@
-// Package mirachlib provides the main application components of mirach.
+// Package lib provides the main application components of mirach.
 //
 // mirachlib is inextricably linked to the util package. If during testing
 // you use any function from the util package that operates with files
 // you will need to use the util.SetFs function to use an in-memory filesystem.
-package mirachlib
+package lib
 
 import (
 	"fmt"
 	"os"
 	"os/signal"
 
-	"github.com/cleardataeng/mirach/cron"
+	"github.com/cleardataeng/mirach/lib/cron"
+	"github.com/cleardataeng/mirach/lib/util"
 	"github.com/cleardataeng/mirach/plugin/envinfo"
-	"github.com/cleardataeng/mirach/util"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"

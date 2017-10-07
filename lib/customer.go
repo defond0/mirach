@@ -1,4 +1,4 @@
-package mirachlib
+package lib
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cleardataeng/mirach/util"
+	"github.com/cleardataeng/mirach/lib/util"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"

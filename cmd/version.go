@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/cleardataeng/mirach/util"
+	"github.com/cleardataeng/mirach/lib/util"
 	"github.com/spf13/cobra"
 )
 

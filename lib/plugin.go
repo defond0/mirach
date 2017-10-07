@@ -1,4 +1,4 @@
-package mirachlib
+package lib
 
 import (
 	"bytes"
@@ -12,12 +12,12 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/cleardataeng/mirach/cron"
+	"github.com/cleardataeng/mirach/lib/cron"
+	"github.com/cleardataeng/mirach/lib/util"
 	"github.com/cleardataeng/mirach/plugin/compinfo"
 	"github.com/cleardataeng/mirach/plugin/ebsinfo"
 	"github.com/cleardataeng/mirach/plugin/envinfo"
 	"github.com/cleardataeng/mirach/plugin/pkginfo"
-	"github.com/cleardataeng/mirach/util"
 
 	"github.com/google/uuid"
 	robfigCron "github.com/robfig/cron"

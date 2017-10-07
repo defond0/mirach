@@ -1,12 +1,12 @@
 // +build integration
 
-package mirachlib
+package lib
 
 import (
 	"os"
 	"testing"
 
-	"github.com/cleardataeng/mirach/util"
+	"github.com/cleardataeng/mirach/lib/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/theherk/viper"

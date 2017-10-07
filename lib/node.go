@@ -1,4 +1,4 @@
-package mirachlib
+package lib
 
 import mqtt "github.com/eclipse/paho.mqtt.golang"
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cleardataeng/mirach/mirachlib"
+	"github.com/cleardataeng/mirach/lib"
+	"github.com/cleardataeng/mirach/lib/util"
 	"github.com/cleardataeng/mirach/plugin/envinfo"
-	"github.com/cleardataeng/mirach/util"
 
 	"github.com/spf13/cobra"
 )
@@ -33,11 +33,11 @@ var MirachCmd = &cobra.Command{
 			util.ShowVersion()
 			return
 		}
-		if err := mirachlib.SetLogLevel(level); err != nil {
+		if err := lib.SetLogLevel(level); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		if err := mirachlib.Start(); err != nil {
+		if err := lib.Start(); err != nil {
 			util.CustomOut(nil, err)
 			os.Exit(1)
 		}
