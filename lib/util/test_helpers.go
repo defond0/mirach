@@ -15,20 +15,24 @@ func ResetTestFs() {
 	TestFs = afero.NewMemMapFs()
 }
 
+var (
+	ca      = `your cert here` + "\n"
+	cert    = `test ca.pem.crt contents` + "\n"
+	privKey = `test private.pem.key` + "\n"
+)
+
+var eveCfg = `asset:
+  id: "000006913-evil-and-bad-for-you"
+customer:
+  id: "00006913"
+`
+
+var goodCfg = `asset:
+  id: "00000666-mirach"
+`
+
 // WriteTestCerts writes certs to the test filesystem for testing.
 func WriteTestCerts() {
-	ca, err := afero.ReadFile(OSFs, "../test_resources/ca.pem")
-	if err != nil {
-		panic(err)
-	}
-	privKey, err := afero.ReadFile(OSFs, "../test_resources/customer/keys/private.pem.key")
-	if err != nil {
-		panic(err)
-	}
-	cert, err := afero.ReadFile(OSFs, "../test_resources/customer/keys/ca.pem.crt")
-	if err != nil {
-		panic(err)
-	}
 	testCA, err := TestFs.Create("/etc/mirach/ca.pem")
 	if err != nil {
 		panic(err)
@@ -44,31 +48,27 @@ func WriteTestCerts() {
 		panic(err)
 	}
 	defer testCert.Close()
-	_, err = testCA.WriteString(string(ca))
+	_, err = testCA.WriteString(ca)
 	if err != nil {
 		panic(err)
 	}
-	_, err = testPrivKey.WriteString(string(privKey))
+	_, err = testPrivKey.WriteString(privKey)
 	if err != nil {
 		panic(err)
 	}
-	_, err = testCert.WriteString(string(cert))
+	_, err = testCert.WriteString(cert)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func writeTestConfig(path string) {
-	config, err := afero.ReadFile(OSFs, path)
-	if err != nil {
-		panic(err)
-	}
+func writeTestConfig(config string) {
 	testConfig, err := TestFs.Create("/etc/mirach/config.yaml")
 	if err != nil {
 		panic(err)
 	}
 	defer testConfig.Close()
-	_, err = testConfig.WriteString(string(config))
+	_, err = testConfig.WriteString(config)
 	if err != nil {
 		panic(err)
 	}
@@ -76,10 +76,10 @@ func writeTestConfig(path string) {
 
 // WriteTestEvilConfig writes a known bad configuration for testing.
 func WriteTestEvilConfig() {
-	writeTestConfig("../test_resources/eve_config.yaml")
+	writeTestConfig(eveCfg)
 }
 
 // WriteTestGoodConfig writes a known good configuration for testing.
 func WriteTestGoodConfig() {
-	writeTestConfig("../test_resources/config.yaml")
+	writeTestConfig(goodCfg)
 }
