@@ -14,6 +14,7 @@ import (
 
 	"github.com/cleardataeng/mirach/lib/cron"
 	"github.com/cleardataeng/mirach/lib/input"
+	"github.com/cleardataeng/mirach/lib/plugin"
 	"github.com/cleardataeng/mirach/lib/util"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -40,13 +41,12 @@ func RunLoop() {
 	}()
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
-	cron := cron.New()
-	cron.Start()
-	plugin.NewCtrl(cron, backends()...)
+	ctrl := plugin.NewCtrl(cron.New(), backends())
+	ctrl.Start()
 	for _ = range sigChan {
 		// sig is a ^c, handle it
 		jww.DEBUG.Println("SIGINT, stopping")
-		Cron.Stop()
+		ctrl.Stop()
 		os.Exit(1)
 	}
 }
