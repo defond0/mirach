@@ -17,7 +17,18 @@ type MQTT struct {
 // SQLite is for local storage.
 type SQLite struct{}
 
+// StdOut is a backend for writing to std out
+type StdOut struct{}
+
 // NewMQTT authenticates and returns a new MQTT backend.
 func NewMQTT(privKey, cert []byte) *MQTT {
 	return &MQTT{}
+}
+
+func (s *StdOut) Read(p []byte) (int, error) {
+	return 0, nil
+}
+
+func (s *StdOut) Write(p []byte) (int, error) {
+	return 0, nil
 }
