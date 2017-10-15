@@ -1,4 +1,4 @@
-package lib
+package input
 
 import (
 	"bufio"
@@ -11,22 +11,24 @@ import (
 	"github.com/theherk/viper"
 )
 
-func readAssetID() string {
-	var valid = regexp.MustCompile(`^[A-Za-z0-9]([\w-]*[A-Za-z0-9])?$`)
+// ReadBroker gets a broker URL from input.
+func ReadBroker() string {
 	var in string
-	for valid.MatchString(in) == false {
-		fmt.Print("asset id: ")
+	for {
+		fmt.Print("mqtt broker url: ")
 		stdin := bufio.NewReader(os.Stdin)
 		read, _ := stdin.ReadString('\n')
 		in = strings.TrimRight(read, "\n")
-		if valid.MatchString(in) == false {
-			fmt.Println("valid values: starts and ends with alphanumeric, can contain dashes and underscores")
+		if _, err := url.ParseRequestURI(in); err != nil {
+			fmt.Printf("broker url not valid: %s; try again\n", err.Error())
+			continue
 		}
+		return in
 	}
-	return in
 }
 
-func readCfgType() string {
+// ReadCfgType gets the preferred configuration type from input.
+func ReadCfgType() string {
 	fmt.Println("creating blank configuration file")
 	var in string
 	for {
@@ -46,17 +48,18 @@ func readCfgType() string {
 	}
 }
 
-func readBroker() string {
+// ReadID get the machine's ID from input.
+func ReadID() string {
+	var valid = regexp.MustCompile(`^[A-Za-z0-9]([\w-]*[A-Za-z0-9])?$`)
 	var in string
-	for {
-		fmt.Print("mqtt broker url: ")
+	for valid.MatchString(in) == false {
+		fmt.Print("machine id: ")
 		stdin := bufio.NewReader(os.Stdin)
 		read, _ := stdin.ReadString('\n')
 		in = strings.TrimRight(read, "\n")
-		if _, err := url.ParseRequestURI(in); err != nil {
-			fmt.Printf("broker url not valid: %s; try again\n", err.Error())
-			continue
+		if valid.MatchString(in) == false {
+			fmt.Println("valid values: starts and ends with alphanumeric, can contain dashes and underscores")
 		}
-		return in
 	}
+	return in
 }

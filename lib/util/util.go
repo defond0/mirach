@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/cleardataeng/mirach/lib/input"
 	"github.com/spf13/afero"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
@@ -18,15 +19,13 @@ var Fs = afero.NewOsFs()
 // BlankConfig is called to create a blank configuration of given type at given
 // directory.
 // When this is complete, if successful, it calls GetConfig for this file.
-func BlankConfig(cfgType, dir string) error {
-	cfgPath := filepath.Join(dir, "config."+cfgType)
+func BlankConfig(cfgType string) error {
+	cfgPath := filepath.Join(GetConfDirs()["sys"], "config."+cfgType)
 	if err := ForceWrite(cfgPath, ""); err != nil {
 		return err
 	}
-	if _, err := GetConfig([]string{dir}); err != nil {
-		return err
-	}
-	return nil
+	_, err := GetConfig()
+	return err
 }
 
 // CheckExceptions checks to see if given error is in the given list of exceptions.
@@ -74,6 +73,12 @@ func FindInDirs(fname string, dirs []string) (string, error) {
 	return "", fmt.Errorf("unable to find %s in %s", fname, dirs)
 }
 
+// FindInConfDirs returns the results of FindInDirs with confDirs.
+func FindInConfDirs(fname string) (string, error) {
+	dirs := GetConfDirs()
+	return FindInDirs(fname, []string{dirs["cur"], dirs["user"], dirs["sys"]})
+}
+
 // ForceWrite forcibly writes a string to a given filepath.
 func ForceWrite(path string, contents string) error {
 	if err := Fs.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -92,8 +97,8 @@ func ForceWrite(path string, contents string) error {
 }
 
 // GetCA returns the certificate authority pem bytes.
-func GetCA(dirs []string) ([]byte, error) {
-	caPath, err := FindInDirs("ca.pem", dirs)
+func GetCA() ([]byte, error) {
+	caPath, err := FindInConfDirs("ca.pem")
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +110,8 @@ func GetCA(dirs []string) ([]byte, error) {
 }
 
 // GetConfig loads the configuration and return the config file used.
-func GetConfig(dirs []string) (string, error) {
+func GetConfig() (string, error) {
+	dirs := GetConfDirs()
 	viper.Reset()
 	viper.SetConfigName("config")
 	for _, d := range dirs {
@@ -114,11 +120,33 @@ func GetConfig(dirs []string) (string, error) {
 	viper.SetFs(Fs)
 	err := viper.ReadInConfig()
 	if err != nil {
-		return "", fmt.Errorf("Fatal error config file: %s \n", err)
+		cfgType := input.ReadCfgType()
+		if err := BlankConfig(cfgType); err != nil {
+			CustomOut("unable to create new config", err)
+		}
 	}
 	viper.SetEnvPrefix("mirach")
 	viper.AutomaticEnv()
 	return viper.ConfigFileUsed(), nil
+}
+
+// LogResChan logs a result or error as return to the given channel.
+// With this you can create a a chan to pass to a go routine then invoke this
+// function. When the go routine to which the given channel was passed, the
+// result will be logged.
+func LogResChan(successMsg, errMsg string, res chan interface{}) {
+	switch r := <-res; r.(type) {
+	case nil:
+		jww.INFO.Println(successMsg)
+	case string:
+		jww.INFO.Println(successMsg + ": " + r.(string))
+	case error:
+		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
+		CustomOut(msg, r)
+	default:
+		err := fmt.Errorf("unexpected type in result chan")
+		CustomOut(nil, err)
+	}
 }
 
 // ReadFile is a simple wrapper around afero.ReadFile.

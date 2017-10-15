@@ -7,145 +7,64 @@ package lib
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
+	"reflect"
 
 	"github.com/cleardataeng/mirach/lib/cron"
+	"github.com/cleardataeng/mirach/lib/input"
 	"github.com/cleardataeng/mirach/lib/util"
-	"github.com/cleardataeng/mirach/plugin/envinfo"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
 
-var (
-	confDirs    []string
-	sysConfDir  string
-	userConfDir string
-	logLevel    = "error" // default log level
-)
-
-func configureLogging() {
-	switch logLevel {
-	case "info":
-		jww.SetStdoutThreshold(jww.LevelInfo)
-	case "trace":
-		jww.SetStdoutThreshold(jww.LevelTrace)
-	}
-}
-
-func getAsset() (*Asset, error) {
-	asset := new(Asset)
-	err := asset.Init()
-	if err != nil {
-		msg := "asset initialization failed"
-		util.CustomOut(msg, err)
-		return nil, err
-	}
-	return asset, nil
-}
-
-func handleCommands(asset *Asset) {
-	err := asset.readCmds()
-	if err != nil {
-		msg := "stopped receiving commands; stopping mirach"
-		util.CustomOut(msg, err)
-		os.Exit(1)
-	}
-	msg := "mirach entered running state; plugins loaded"
-	util.CustomOut(msg, nil)
-}
-
-// logResChan logs a result or error as return to the given channel.
-// With this you can create a a chan to pass to a go routine then invoke this
-// function. When the go routine to which the given channel was passed, the
-// result will be logged.
-func logResChan(successMsg, errMsg string, res chan interface{}) {
-	switch r := <-res; r.(type) {
-	case nil:
-		jww.INFO.Println(successMsg)
-	case string:
-		jww.INFO.Println(successMsg + ": " + r.(string))
-	case error:
-		msg := fmt.Sprintf("go routine experienced error: %s", r.(error).Error())
-		util.CustomOut(msg, r)
-	default:
-		err := fmt.Errorf("unexpected type in result chan")
-		util.CustomOut(nil, err)
-	}
-}
-
-// PrepResources set up requirements and returns nodes.
-func PrepResources() (*Asset, error) {
-	var err error
-	configureLogging()
-	confDirs, err = util.GetConfDirs()
-	if err != nil {
-		return nil, err
-	}
-	userConfDir, sysConfDir = confDirs[1], confDirs[2]
-	_, err = util.GetConfig(confDirs)
-	if err != nil {
-		cfgType := readCfgType()
-		err := util.BlankConfig(cfgType, sysConfDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-	brokerURL := viper.GetString("broker")
-	if brokerURL == "" {
-		brokerURL = readBroker()
-		viper.Set("broker", brokerURL)
-		if err = viper.WriteConfig(); err != nil {
-			return nil, err
-		}
-	}
-	asset, err := getAsset()
-	if err != nil {
-		return nil, err
-	}
-	return asset, nil
+func backends() []io.ReadWriter {
+	return []io.ReadWriter{}
 }
 
 // RunLoop begins the long running portions of the application.
 // This function will run indefinitely. It creates and manages the cron scheduler.
 // It also calls for the initialization of clients and signal channels.
-func RunLoop(asset *Asset) {
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt)
+func RunLoop() {
+	defer func() {
+		if r := recover(); r != nil {
+			if reflect.TypeOf(r).String() == "plugin.Exception" {
+				util.CustomOut("error in plugin (restarting)", r)
+				RunLoop()
+			}
+			fmt.Println(r)
+			os.Exit(1)
+		}
+	}()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
 	cron := cron.New()
-	if envinfo.Env == nil {
-		envinfo.Env = new(envinfo.EnvInfoGroup)
-		envinfo.Env.GetInfo()
-	}
-	handlePlugins(asset, cron)
-	handleCommands(asset)
-	for _ = range signalChannel {
+	cron.Start()
+	plugin.NewCtrl(cron, backends()...)
+	for _ = range sigChan {
 		// sig is a ^c, handle it
 		jww.DEBUG.Println("SIGINT, stopping")
-		cron.Stop()
+		Cron.Stop()
 		os.Exit(1)
 	}
 }
 
-// SetLogLevel sets the log level variable.
-func SetLogLevel(level string) error {
-	levels := []string{"error", "info", "trace"}
-	for _, l := range levels {
-		if level == l {
-			logLevel = l
-			return nil
-		}
-	}
-	return fmt.Errorf("choose level from %s", levels)
-}
-
 // Start is the main entry for the mirachlib.
 func Start() error {
-	asset, err := PrepResources()
-	if err != nil {
-		return err
+	if _, err := util.GetConfig(); err != nil {
+		cfgType := input.ReadCfgType()
+		if err := util.BlankConfig(cfgType); err != nil {
+			return err
+		}
 	}
-	RunLoop(asset)
+	switch viper.GetString("log_level") {
+	case "info":
+		jww.SetStdoutThreshold(jww.LevelInfo)
+	case "trace":
+		jww.SetStdoutThreshold(jww.LevelTrace)
+	}
+	RunLoop()
 	return nil
 }

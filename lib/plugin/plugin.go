@@ -1,4 +1,4 @@
-package lib
+package plugin
 
 import (
 	"bytes"
@@ -24,12 +24,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/theherk/viper"
 )
-
-// MaxMQTTDataSize defines the maximum size of chunks to be sent over MQTT.
-const MaxMQTTDataSize = 88000
-
-// MaxChunkedSize defines the threshold after which presigned urls will be used.
-const MaxChunkedSize = 512000
 
 type chunksMsg struct {
 	mqttMsg
@@ -78,101 +72,18 @@ type putHTTPMsg struct {
 	URL string `json:"url"`
 }
 
-var (
-	customPlugins  map[string]CustomPlugin
-	builtinPlugins map[string]BuiltinPlugin
+const (
+	// MaxChunkedSize is the threshold beyond which presigned urls are used.
+	MaxChunkedSize = 512000
+
+	// MaxMQTTDataSize is the max size of chunks to be sent over MQTT.
+	MaxMQTTDataSize = 88000
 )
 
-// Run will run custom plugin and publishes its results.
-func (p *CustomPlugin) Run(asset *Asset) func() {
-	pCmd := p.Cmd
-	pLabel := p.Label
-	pType := p.Type
-	return func() {
-		jww.INFO.Printf("%s: running", pLabel)
-		cmd := exec.Command(pCmd)
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			jww.ERROR.Println(err)
-		}
-		if err := cmd.Start(); err != nil {
-			jww.ERROR.Println(err)
-		}
-		var d []byte
-		if err := json.NewDecoder(stdout).Decode(&d); err != nil {
-			jww.ERROR.Println(err)
-		}
-		err = cmd.Wait()
-		if err := SendData(d, pType, asset); err != nil {
-			jww.ERROR.Println(err)
-		}
-	}
-}
-
-// Run will run an internal function and publish its results.
-func (p *BuiltinPlugin) Run(asset *Asset) func() {
-	pFunc := p.StrFunc
-	pLabel := p.Label
-	pType := p.Type
-	return func() {
-		defer func() {
-			if r := recover(); r != nil {
-				if reflect.TypeOf(r).String() == "plugin.Exception" {
-					jww.TRACE.Println(r)
-					return
-				}
-				jww.ERROR.Println(r)
-			}
-		}()
-		jww.INFO.Printf("%s: running", pLabel)
-		d := pFunc()
-		if err := SendData([]byte(d), pType, asset); err != nil {
-			jww.ERROR.Println(err)
-		}
-	}
-}
-
-func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
-	if p.Disabled {
-		jww.INFO.Printf("%s: disabled, skipping", p.Label)
-		return
-	}
-	var (
-		addMsg     = fmt.Sprintf("%s: adding to cron", p.Label)     // notification of load process
-		successMsg = fmt.Sprintf("%s: added to cron", p.Label)      // message if successfully loaded
-		errorMsg   = fmt.Sprintf("%s: failed add to cron", p.Label) // error if failure to load
-	)
-	delay, err := time.ParseDuration(p.LoadDelay)
-	if err != nil {
-		if p.LoadDelay != "" {
-			msg := "invalid duration: continuing without delay"
-			util.CustomOut(msg, err)
-			delay = 0
-		}
-		// If an empty sting is given an error is generated, but the
-		// delay is correctly set to zero. No need to set here.
-	}
-	if delay > 0 {
-		addMsg += fmt.Sprintf(" in %s", delay)
-		successMsg += fmt.Sprintf(" after %s", delay)
-		errorMsg += fmt.Sprintf(" after %s", delay)
-	}
-	jww.INFO.Println(addMsg)
-	res := make(chan interface{})
-	cron.AddFuncDelayed(p.Schedule, f, delay, res)
-	go logResChan(successMsg, errorMsg, res)
-	if p.RunAtLoad {
-		pLabel := p.Label
-		go func() {
-			jww.TRACE.Printf("%s: run_at_load true; run when loaded then resume schedule", pLabel)
-			time.Sleep(delay)
-			f()
-		}()
-		return
-	}
-	s, _ := robfigCron.Parse(p.Schedule)
-	jww.TRACE.Printf("%s: initial run time: %s", p.Label, s.Next(time.Now()))
-}
+var (
+	builtinPlugins map[string]BuiltinPlugin
+	customPlugins  map[string]CustomPlugin
+)
 
 func getBuiltinPlugins() map[string]BuiltinPlugin {
 	if len(builtinPlugins) == 0 {
@@ -401,4 +312,95 @@ func SendData(b []byte, t string, asset *Asset) error {
 		return err
 	}
 	return nil
+}
+
+// Run will run an internal function and publish its results.
+func (p *BuiltinPlugin) Run(asset *Asset) func() {
+	pFunc := p.StrFunc
+	pLabel := p.Label
+	pType := p.Type
+	return func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if reflect.TypeOf(r).String() == "plugin.Exception" {
+					jww.TRACE.Println(r)
+					return
+				}
+				jww.ERROR.Println(r)
+			}
+		}()
+		jww.INFO.Printf("%s: running", pLabel)
+		d := pFunc()
+		if err := SendData([]byte(d), pType, asset); err != nil {
+			jww.ERROR.Println(err)
+		}
+	}
+}
+
+// Run will run custom plugin and publishes its results.
+func (p *CustomPlugin) Run(asset *Asset) func() {
+	pCmd := p.Cmd
+	pLabel := p.Label
+	pType := p.Type
+	return func() {
+		jww.INFO.Printf("%s: running", pLabel)
+		cmd := exec.Command(pCmd)
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			jww.ERROR.Println(err)
+		}
+		if err := cmd.Start(); err != nil {
+			jww.ERROR.Println(err)
+		}
+		var d []byte
+		if err := json.NewDecoder(stdout).Decode(&d); err != nil {
+			jww.ERROR.Println(err)
+		}
+		err = cmd.Wait()
+		if err := SendData(d, pType, asset); err != nil {
+			jww.ERROR.Println(err)
+		}
+	}
+}
+
+func (p *Plugin) loadPlugin(cron *cron.MirachCron, f func()) {
+	if p.Disabled {
+		jww.INFO.Printf("%s: disabled, skipping", p.Label)
+		return
+	}
+	var (
+		addMsg     = fmt.Sprintf("%s: adding to cron", p.Label)     // notification of load process
+		successMsg = fmt.Sprintf("%s: added to cron", p.Label)      // message if successfully loaded
+		errorMsg   = fmt.Sprintf("%s: failed add to cron", p.Label) // error if failure to load
+	)
+	delay, err := time.ParseDuration(p.LoadDelay)
+	if err != nil {
+		if p.LoadDelay != "" {
+			msg := "invalid duration: continuing without delay"
+			util.CustomOut(msg, err)
+			delay = 0
+		}
+		// If an empty sting is given an error is generated, but the
+		// delay is correctly set to zero. No need to set here.
+	}
+	if delay > 0 {
+		addMsg += fmt.Sprintf(" in %s", delay)
+		successMsg += fmt.Sprintf(" after %s", delay)
+		errorMsg += fmt.Sprintf(" after %s", delay)
+	}
+	jww.INFO.Println(addMsg)
+	res := make(chan interface{})
+	cron.AddFuncDelayed(p.Schedule, f, delay, res)
+	go logResChan(successMsg, errorMsg, res)
+	if p.RunAtLoad {
+		pLabel := p.Label
+		go func() {
+			jww.TRACE.Printf("%s: run_at_load true; run when loaded then resume schedule", pLabel)
+			time.Sleep(delay)
+			f()
+		}()
+		return
+	}
+	s, _ := robfigCron.Parse(p.Schedule)
+	jww.TRACE.Printf("%s: initial run time: %s", p.Label, s.Next(time.Now()))
 }

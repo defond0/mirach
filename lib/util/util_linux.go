@@ -7,14 +7,11 @@ import (
 )
 
 // GetConfDirs return the ordered configuration directories.
-func GetConfDirs() ([]string, error) {
-	var dirs []string
-	home, err := homedir.Dir()
-	if err != nil {
-		return dirs, err
+func GetConfDirs() map[string]string {
+	home, _ := homedir.Dir()
+	return map[string]string{
+		"cur":  ".",
+		"user": filepath.Join(home, ".config/mirach"),
+		"sys":  "/etc/mirach/",
 	}
-	user := filepath.Join(home, ".config/mirach")
-	sys := "/etc/mirach/"
-	dirs = append(dirs, ".", user, sys)
-	return dirs, nil
 }
