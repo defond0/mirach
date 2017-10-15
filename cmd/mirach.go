@@ -6,28 +6,22 @@ import (
 
 	"github.com/cleardataeng/mirach/lib"
 	"github.com/cleardataeng/mirach/lib/util"
-	"github.com/cleardataeng/mirach/plugin/envinfo"
 
 	"github.com/spf13/cobra"
 )
 
-// flag variables
 var (
-	compInfoGroup string
-	incText       bool
-	level         string
-	licenseGroup  string
-	pkgInfoGroup  string
-	version       bool
+	fullText bool
+	licGroup string
+	version  bool
 )
 
 // MirachCmd is the root mirach command.
 var MirachCmd = &cobra.Command{
 	Use:   "mirach",
-	Short: "mirach collects data and send it over mqtt.",
+	Short: "mirach collects and sends data.",
 	Long: "mirach is a lightweight tool for collecting information about a " +
-		"computer then sending that information to an mqtt broker for consumption. " +
-		"The command alone runs the main mirach program.",
+		"computer or attached devices. It can then send the data to a clearing house.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if version {
 			util.ShowVersion()
@@ -45,27 +39,10 @@ var MirachCmd = &cobra.Command{
 }
 
 func init() {
-	if envinfo.Env == nil {
-		envinfo.Env = new(envinfo.EnvInfoGroup)
-		envinfo.Env.GetInfo()
-	}
-	MirachCmd.PersistentFlags().StringVarP(&level, "loglevel", "l", "error",
-		"log level: error, info, trace")
-	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
-
-	MirachCmd.AddCommand(compinfoCmd)
-	compinfoCmd.Flags().StringVarP(&compInfoGroup, "infogroup", "i", "system",
-		"compinfo group to check: docker, load, system")
-
-	MirachCmd.AddCommand(pkginfoCmd)
-	pkginfoCmd.Flags().StringVarP(&pkgInfoGroup, "infogroup", "i", "all",
-		"pkginfo group to check: available, available_security, installed")
-	MirachCmd.AddCommand(envinfoCmd)
-	MirachCmd.AddCommand(ebsinfoCmd)
-	MirachCmd.AddCommand(licenseCmd)
-	licenseCmd.Flags().BoolVarP(&incText, "include-text", "t", false,
-		"display full text for each license")
-	licenseCmd.Flags().StringVarP(&licenseGroup, "group", "g", "mirach",
+	licenseCmd.Flags().BoolVar(&fullText, "full-text", false, "display full text for each license")
+	licenseCmd.Flags().StringVarP(&licGroup, "group", "g", "mirach",
 		`which licenses to display: "all", "mirach", or "other" for libraries used in mirach`)
-	MirachCmd.AddCommand(versionCmd)
+	MirachCmd.Flags().BoolVar(&version, "version", false, "display current mirach version")
+	MirachCmd.AddCommand(licenseCmd, pluginCmd, versionCmd)
+	pluginCmd.Flags().StringVarP(&pluginName, "plugin", "p", "all", "run a given plugin")
 }
