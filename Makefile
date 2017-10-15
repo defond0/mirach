@@ -9,6 +9,7 @@ VERSION := $(if $(SNAP),SNAPSHOT,$(shell git describe --always --dirty))
 BUILDDIR := ./_build
 ARCDIR := $(BUILDDIR)/arc
 BINDIR := $(BUILDDIR)/bin
+COV := cover.out
 DOWNLOADLOC := s3://mirach/builds
 DOWNLOADSNAPLOC := $(DOWNLOADLOC)/SNAPSHOT
 DOWNLOADSRELEASELOC := $(DOWNLOADLOC)/RELEASE
@@ -63,14 +64,20 @@ clean: clean-build ## clean all
 clean-build: ## remove build artifacts
 	rm -rf $(BUILDDIR)
 
+clean-coverage: ## remove coverage profile
+	rm -f $(COV)
+
+coverage-browser: $(COV) ## open coverage report in browser
+	go tool cover -html=$(COV)
+
+coverage-deps: ## installs gocoverutil for checking coverage of full lib
+	go get -u github.com/AlekSi/gocoverutil
+
 install: install-build-deps ## install to GOPATH
 	go install -v -ldflags=$(LDFLAGS)
 
 install-build-deps: ## install go dependencies
 	go get ./...
-
-install-test-deps: ## install go dependencies
-	go get -t -tags '$(GO_BUILD_FLAGS)' ./...
 
 lint: ## gofmt goimports
 	gofmt *.go
@@ -105,9 +112,14 @@ ifndef RELEASE_REPO
 	$(error RELEASE_REPO is undefined)
 endif
 
-test: install-test-deps test-unit ## run unit tests
-	go test -v lib/...
+test: test-deps test-unit ## run unit tests
+	go test -v ./lib/...
+
+test-deps: ## install test dependencies
+	go get -t -tags '$(GO_BUILD_FLAGS)' ./lib/...
+	go get github.com/golang/mock/gomock
+	go get github.com/golang/mock/mockgen
 
 test-integration: export GO_BUILD_FLAGS = integration
-test-integration: install-test-deps ## run integration tests
-	go test -v -tags '$(GO_BUILD_FLAGS)' lib/...
+test-integration: test-deps ## run integration tests
+	go test -v -tags '$(GO_BUILD_FLAGS)' ./lib/...
