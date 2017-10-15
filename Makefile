@@ -1,4 +1,4 @@
-PHONY: all all-snap archives clean clean-build deploy-docs docs help install install-build-deps install-test-deps lint publish publish-release publish-snapshot release test test-all test-integration test-unit
+PHONY: all all-snap archives clean clean-build deploy-docs docs help install install-build-deps install-test-deps lint publish publish-release publish-snapshot release test test-all test-integration
 .DEFAULT_GOAL := help
 
 # project variables
@@ -105,14 +105,9 @@ ifndef RELEASE_REPO
 	$(error RELEASE_REPO is undefined)
 endif
 
-test: test-unit ## run unit tests
-
-test-all: test-unit test-integration
+test: install-test-deps test-unit ## run unit tests
+	go test -v lib/...
 
 test-integration: export GO_BUILD_FLAGS = integration
 test-integration: install-test-deps ## run integration tests
-	go test -v -tags '$(GO_BUILD_FLAGS)' ./...
-
-test-unit: export GO_BUILD_FLAGS = unit
-test-unit: install-test-deps ## run unit tests
-	go test -v -tags '$(GO_BUILD_FLAGS)' ./...
+	go test -v -tags '$(GO_BUILD_FLAGS)' lib/...
