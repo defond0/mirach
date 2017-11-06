@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"reflect"
 
-	"github.com/cleardataeng/mirach/lib/cron"
 	"github.com/cleardataeng/mirach/lib/input"
 	"github.com/cleardataeng/mirach/lib/plugin"
 	"github.com/cleardataeng/mirach/lib/util"
@@ -41,7 +40,7 @@ func RunLoop() {
 	}()
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
-	ctrl := plugin.NewCtrl(cron.New(), backends())
+	ctrl := plugin.NewCtrl(backends())
 	ctrl.Start()
 	for _ = range sigChan {
 		// sig is a ^c, handle it
